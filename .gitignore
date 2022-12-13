@@ -1,0 +1,3 @@
+.direnv
+.stack-work
+*.cabal
