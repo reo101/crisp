@@ -6,7 +6,7 @@
 module ParserCombinators.Datatypes where
 
 import Control.Applicative (Alternative (..))
-import Control.Monad (MonadPlus)
+import Control.Monad (MonadPlus, liftM)
 
 ------------------------
 ---- ParseErrorType ----
@@ -63,9 +63,7 @@ newtype Parser i m e a where
 
 instance Functor (Parser i m e) where
   fmap :: (a -> b) -> Parser i m e a -> Parser i m e b
-  fmap f (Parser p) = Parser $ \input offset -> do
-    (offset', output, rest) <- p input offset
-    pure (offset', f output, rest)
+  fmap = liftM
 
 instance Applicative (Parser i m e) where
   pure :: a -> Parser i m e a
