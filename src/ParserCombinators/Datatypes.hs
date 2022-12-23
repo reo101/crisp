@@ -77,7 +77,7 @@ instance Monad (Parser i m e) where
   return a = Parser $ \input offset -> Right (offset, a, input)
 
   (>>=) :: Parser i m e a -> (a -> Parser i m e b) -> Parser i m e b
-  (Parser p) >>= k = Parser $ \input offset -> do
+  Parser p >>= k = Parser $ \input offset -> do
     (offset', output, rest) <- p input offset
     parse (k output) rest offset'
 
