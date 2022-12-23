@@ -27,6 +27,7 @@ import Data.Char (isAlphaNum, isDigit)
 import Data.Foldable (asum)
 
 import ParserCombinators.Datatypes
+import Data.List (foldl')
 
 -- | Parse a token/character using a custom error generator and condition
 token :: (i -> ParseErrorType i e) -> (i -> Bool) -> Parser i [] e i
@@ -90,7 +91,7 @@ digit = read . pure <$> satisfy isDigit
 
 -- | Parse an integer
 integer :: Parser Char [] e Integer
-integer = foldl (\res x -> res * 10 + x) 0 <$> some digit
+integer = foldl' (\res x -> res * 10 + x) 0 <$> some digit
 
 -- | Parse a symbol
 symbol :: Parser Char [] String String
