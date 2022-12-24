@@ -1,12 +1,16 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GADTSyntax #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
--- {-# LANGUAGE FlexibleInstances #-}
--- {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module ParserCombinators.Datatypes where
 
 import Control.Applicative (Alternative (..))
 import Control.Monad (MonadPlus, ap, liftM)
+import Data.Kind (Type)
 
 ------------------------
 ---- ParseErrorType ----
@@ -28,38 +32,54 @@ instance (Show i, Show e) => Show (ParseErrorType i e) where
   show (CustomError e) = "Custom Error: " ++ show e
   show Empty = "No error"
 
+----------------
+---- Offset ----
+----------------
+
+newtype Offset where
+  Offset :: Integer -> Offset
+  deriving newtype (Num, Enum)
+
+instance Show Offset where
+  show :: Offset -> String
+  show (Offset o) = "offset " ++ show o
+
 --------------------
 ---- ParseError ----
 --------------------
 
-type Offset = Integer
-
 data ParseError i e where
-  ParseError
-    :: { errOffset :: Offset
-       , errError :: ParseErrorType i e
-       }
-    -> ParseError i e
-
+  ParseError ::
+    { errOffset :: Offset
+    , errError :: ParseErrorType i e
+    } ->
+    ParseError i e
 
 instance (Show i, Show e) => Show (ParseError i e) where
   show :: ParseError i e -> String
-  show (ParseError o e) = "Error: " ++ show e ++ ", at offset " ++ show o
+  show (ParseError o e) = "Error: " ++ show e ++ ", at " ++ show o
 
 ----------------
 ---- Parser ----
 ----------------
 
-newtype Parser i m e a where
-  Parser
-    :: { parse
-          :: [i]
-          -> Offset
-          -> Either
-              (m (ParseError i e))
-              (Offset, a, [i])
-       }
-    -> Parser i m e a
+newtype Parser stream m e a where
+  Parser ::
+    { parse ::
+        stream ->
+        Offset ->
+        Either
+          (m (ParseError (Token stream) e))
+          (Offset, a, stream)
+    } ->
+    Parser stream m e a
+
+type Token :: Type -> Type
+type family Token stream
+
+-- type instance Token Text = Char
+-- type instance Token ByteString = Word8
+type instance Token [a] = a
 
 instance Functor (Parser i m e) where
   fmap :: (a -> b) -> Parser i m e a -> Parser i m e b

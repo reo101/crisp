@@ -15,7 +15,7 @@ import ParserCombinators.Parser
 -----------------------
 
 -- | Parse an atom
-atom :: Parser Char [] String Atom
+atom :: Parser String [] String Atom
 atom =
   asum
     [ AInteger <$> integer
@@ -24,7 +24,7 @@ atom =
     ]
 
 -- | Parse a S expression
-sexpr :: Parser Char [] String [Crisp]
+sexpr :: Parser String [] String [Crisp]
 sexpr =
   asum $
     sexprWith
@@ -83,7 +83,7 @@ sexpr =
 --   return (name, value)
 
 -- | Parse a whole crisp expression
-crisp :: Parser Char [] String Crisp
+crisp :: Parser String [] String Crisp
 crisp =
   asum
     -- [ CrFunction <$> function
