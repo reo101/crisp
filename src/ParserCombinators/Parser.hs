@@ -112,12 +112,12 @@ try :: (Alternative m) => Parser i m e a -> Parser i m e (Maybe a)
 try p = Just <$> p <|> pure Nothing
 
 -- | Parse a list of items separated by the specified separator parser
-sepBy :: (Alternative m) => Parser i m e a -> Parser i m e b -> Parser i m e [a]
-sepBy p sep = sepBy1 p sep <|> pure []
+sepBy :: (Alternative m) => Parser [i] m e a -> Parser [i] m e b -> Parser [i] m e [a]
+sepBy p sep = toList <$> sepBy1 p sep <|> pure []
 
 -- | Parse a non-empty list of items separated by the specified separator parser
-sepBy1 :: (Alternative m) => Parser i m e a -> Parser i m e b -> Parser i m e [a]
+sepBy1 :: (Alternative m) => Parser [i] m e a -> Parser [i] m e b -> Parser [i] m e (NonEmpty a)
 sepBy1 p sep = do
   x <- p
   xs <- many (sep *> p)
-  return $ x : xs
+  return $  x :| xs
