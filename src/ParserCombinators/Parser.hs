@@ -120,11 +120,11 @@ symbol = some $ token forbidden validate
         else Nothing
 
 -- | Parse one or more of the specified parser
-many1 :: (Alternative m) => Parser [i] m e a -> Parser [i] m e [a]
+many1 :: (Alternative m) => Parser [i] m e a -> Parser [i] m e (NonEmpty a)
 many1 p = do
   x <- p
   xs <- many p
-  return $ x : xs
+  return $ x :| xs
 
 -- | Parse a list of items separated by the specified separator parser
 sepBy :: (Alternative m) => Parser [i] m e a -> Parser [i] m e b -> Parser [i] m e [a]
