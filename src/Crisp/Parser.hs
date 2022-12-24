@@ -47,7 +47,7 @@ sexpr =
 --   spaces
 --   _ <- string "fn"
 --   spaces
---   name <- try symbol
+--   name <- optional symbol
 --   spaces
 --   args <- between (string "[") (string "]") (symbol `sepBy` spaces)
 --   spaces

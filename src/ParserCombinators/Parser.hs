@@ -28,6 +28,8 @@ import Data.Foldable (asum)
 
 import ParserCombinators.Datatypes
 import Data.List (foldl')
+import Data.List.NonEmpty (NonEmpty ((:|)))
+import Data.List.NonEmpty (toList)
 
 -- | Parse a token/character using a custom error generator and condition
 token :: (i -> ParseErrorType i e) -> (i -> Bool) -> Parser [i] [] e i
@@ -106,10 +108,6 @@ many1 p = do
   x <- p
   xs <- many p
   return $ x : xs
-
--- | Try parsing the specified parser, returning an empty list if it fails
-try :: (Alternative m) => Parser i m e a -> Parser i m e (Maybe a)
-try p = Just <$> p <|> pure Nothing
 
 -- | Parse a list of items separated by the specified separator parser
 sepBy :: (Alternative m) => Parser [i] m e a -> Parser [i] m e b -> Parser [i] m e [a]
