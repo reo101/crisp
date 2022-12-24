@@ -7,6 +7,7 @@ module Crisp.Parser (
 import Data.Foldable (asum)
 
 import Crisp.Datatypes (Atom (..), Crisp (..))
+import Data.List.NonEmpty (toList)
 import ParserCombinators.Datatypes (Parser)
 import ParserCombinators.Parser (
   between,
@@ -46,7 +47,7 @@ sexpr =
       between
         (string left)
         (string right)
-        (crisp `sepBy1` spaces)
+        (toList <$> (crisp `sepBy1` spaces))
 
 -- -- | Parse a function definition
 -- function :: Parser Char [] String Function
