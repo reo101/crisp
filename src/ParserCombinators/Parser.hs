@@ -1,35 +1,43 @@
 {-# LANGUAGE GADTSyntax #-}
 {-# LANGUAGE InstanceSigs #-}
 
-module ParserCombinators.Parser
-  ( token
-  , satisfy
-  , eof
-  , char
-  , string
-  , between
-  , space
-  , spaces
-  , spaces1
-  , bool
-  , digit
-  , integer
-  , symbol
-  , many1
-  , try
-  , sepBy
-  , sepBy1
-  ) where
+module ParserCombinators.Parser (
+  token,
+  satisfy,
+  eof,
+  char,
+  string,
+  between,
+  space,
+  spaces,
+  spaces1,
+  bool,
+  digit,
+  integer,
+  symbol,
+  many1,
+  sepBy,
+  sepBy1,
+) where
 
 import Control.Applicative (Alternative (..))
 import Control.Monad (void)
 import Data.Char (isAlphaNum, isDigit)
 import Data.Foldable (asum)
 
-import ParserCombinators.Datatypes
 import Data.List (foldl')
-import Data.List.NonEmpty (NonEmpty ((:|)))
-import Data.List.NonEmpty (toList)
+import Data.List.NonEmpty (NonEmpty ((:|)), toList)
+import ParserCombinators.Datatypes (
+  ParseError (ParseError),
+  ParseErrorType (
+    CustomError,
+    EndOfInput,
+    Expected,
+    ExpectedEndOfFile,
+    Unexpected
+  ),
+  Parser (Parser),
+ )
 
 -- | Parse a token/character using a custom error generator and condition
 token :: (i -> ParseErrorType i e) -> (i -> Bool) -> Parser [i] [] e i
@@ -118,4 +126,4 @@ sepBy1 :: (Alternative m) => Parser [i] m e a -> Parser [i] m e b -> Parser [i] 
 sepBy1 p sep = do
   x <- p
   xs <- many (sep *> p)
-  return $  x :| xs
+  return $ x :| xs

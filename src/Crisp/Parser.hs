@@ -1,14 +1,22 @@
-module Crisp.Parser
-  ( atom
-  , sexpr
-  , crisp
-  ) where
+module Crisp.Parser (
+  atom,
+  sexpr,
+  crisp,
+) where
 
 import Data.Foldable (asum)
 
-import Crisp.Datatypes
-import ParserCombinators.Datatypes
-import ParserCombinators.Parser
+import Crisp.Datatypes (Atom (..), Crisp (..))
+import ParserCombinators.Datatypes (Parser)
+import ParserCombinators.Parser (
+  between,
+  bool,
+  integer,
+  sepBy1,
+  spaces,
+  string,
+  symbol,
+ )
 
 -----------------------
 ---- Crisp Related ----
