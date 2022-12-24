@@ -18,6 +18,7 @@ import Data.Kind (Type)
 
 data ParseErrorType i e
   = EndOfInput
+  | Unexpected i
   | Expected i i
   | ExpectedEndOfFile i
   | CustomError e
@@ -27,6 +28,7 @@ data ParseErrorType i e
 instance (Show i, Show e) => Show (ParseErrorType i e) where
   show :: ParseErrorType i e -> String
   show EndOfInput = "End of Input"
+  show (Unexpected a) = "Unexpected " ++ show a
   show (Expected e a) = "Expected " ++ show e ++ ", got " ++ show a
   show (ExpectedEndOfFile a) = "Expected EndOfFile, got " ++ show a
   show (CustomError e) = "Custom Error: " ++ show e

@@ -22,7 +22,7 @@ module ParserCombinators.Parser (
 
 import Control.Applicative (Alternative (..))
 import Control.Monad (void)
-import Data.Char (isAlphaNum, isDigit)
+import Data.Char (isAlphaNum)
 import Data.Foldable (asum)
 
 import Data.List (foldl')
@@ -38,18 +38,19 @@ import ParserCombinators.Datatypes (
   ),
   Parser (Parser),
  )
+import Text.Read (readMaybe)
 
 -- | Parse a token/character using a custom error generator and condition
-token :: (i -> ParseErrorType i e) -> (i -> Bool) -> Parser [i] [] e i
+token :: (i -> ParseErrorType i e) -> (i -> Maybe a) -> Parser [i] [] e a
 token mkErr predicate = Parser $ \input offset ->
   case input of
     [] -> Left $ pure $ ParseError offset EndOfInput
     x : rest
-      | predicate x -> Right (succ offset, x, rest)
+      | Just a <- predicate x -> Right (succ offset, a, rest)
       | otherwise -> Left $ pure $ ParseError offset $ mkErr x
 
 -- | Parse taken/character by a condition
-satisfy :: (i -> Bool) -> Parser [i] [] e i
+satisfy :: (i -> Maybe a) -> Parser [i] [] e a
 satisfy = token Unexpected
 
 -- | Parse EOF
@@ -61,7 +62,12 @@ eof = Parser $ \input offset ->
 
 -- | Parse a character
 char :: Eq i => i -> Parser [i] [] e i
-char i = token (Expected i) (== i)
+char i = token (Expected i) (ensure (== i))
+  where
+    ensure :: (a -> Bool) -> a -> Maybe a
+    ensure p x
+      | p x = Just x
+      | otherwise = Nothing
 
 -- | Parse a string/symbol
 string :: Eq i => [i] -> Parser [i] [] e [i]
@@ -97,7 +103,7 @@ bool =
 
 -- | Parse a digit
 digit :: Parser String [] e Integer
-digit = read . pure <$> satisfy isDigit
+digit = satisfy (readMaybe . pure)
 
 -- | Parse an integer
 integer :: Parser String [] e Integer
@@ -105,10 +111,13 @@ integer = foldl' (\res x -> res * 10 + x) 0 <$> some digit
 
 -- | Parse a symbol
 symbol :: Parser String [] String String
-symbol = some $ token forbidden isValid
+symbol = some $ token forbidden validate
   where
     forbidden i = CustomError $ "Forbidden symbol character " ++ show i
-    isValid c = isAlphaNum c
+    validate c =
+      if isAlphaNum c
+        then Just c
+        else Nothing
 
 -- | Parse one or more of the specified parser
 many1 :: (Alternative m) => Parser [i] m e a -> Parser [i] m e [a]
