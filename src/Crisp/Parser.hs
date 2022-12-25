@@ -8,7 +8,7 @@ import Data.Foldable (asum)
 
 import Crisp.Datatypes (Atom (..), Crisp (..))
 import Data.List.NonEmpty (toList)
-import ParserCombinators.Datatypes (Parser)
+import ParserCombinators.Datatypes (Parser (..))
 import ParserCombinators.Parser (
   between,
   bool,
@@ -18,10 +18,6 @@ import ParserCombinators.Parser (
   string,
   symbol,
  )
-
------------------------
----- Crisp Related ----
------------------------
 
 -- | Parse an atom
 atom :: Parser String [] String Atom
@@ -49,57 +45,10 @@ sexpr =
         (string right)
         (toList <$> (crisp `sepBy1` spaces))
 
--- -- | Parse a function definition
--- function :: Parser Char [] String Function
--- function = do
---   _ <- string "("
---   spaces
---   _ <- string "fn"
---   spaces
---   name <- optional symbol
---   spaces
---   args <- between (string "[") (string "]") (symbol `sepBy` spaces)
---   spaces
---   body <- crisp `sepBy` spaces
---   spaces
---   _ <- string ")"
---   return $ Function name args body
---
--- -- | Parse a let expression
--- letExpr :: Parser Char [] String LetExpr
--- letExpr = do
---   _ <- string "("
---   spaces
---   _ <- string "let"
---   spaces
---   bindings <- between (string "[") (string "]") (binding `sepBy` spaces)
---   spaces
---   body <- crisp
---   spaces
---   _ <- string ")"
---   return $ LetExpr bindings body
---
--- -- | Parse a let binding
--- binding :: Parser Char [] String Binding
--- binding = do
---   _ <- string "("
---   spaces
---   name <- symbol
---   spaces
---   value <- crisp
---   spaces
---   _ <- string ")"
---   return (name, value)
-
 -- | Parse a whole crisp expression
 crisp :: Parser String [] String Crisp
 crisp =
   asum
-    -- [ CrFunction <$> function
-    -- , CrLetExpr <$> letExpr
-    -- , CrAtom <$> atom
-    -- , CrSExpr <$> sexpr
-    -- ]
     [ CrAtom <$> atom
     , CrSExpr <$> sexpr
     ]
