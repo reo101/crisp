@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTSyntax #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE ParallelListComp #-}
 
 module Crisp.Interpreter (
   Val (..),
@@ -13,6 +14,7 @@ module Crisp.Interpreter (
 import Control.Applicative (Alternative ((<|>)))
 
 -- import Control.Monad.State (StateT)
+
 import Crisp.Datatypes (Atom (..), Crisp (..))
 import Data.Map (Map, fromList, (!?))
 import Data.Maybe (fromMaybe)
@@ -21,6 +23,7 @@ data Val where
   VFunction ::
     { fEnv :: Environment
     , fArgs :: [String]
+    , fKnownArgs :: Map String (Crisp, Environment)
     , fBody :: Crisp
     } ->
     Val
@@ -36,81 +39,97 @@ data Val where
 
 data Environment where
   Environment ::
-    { eBindings :: Map String Crisp
+    { eBindings :: Map String Val
     , eParent :: Maybe Environment
     } ->
     Environment
   deriving (Show)
 
-fetch :: Environment -> String -> Maybe Crisp
+fetch :: Environment -> String -> Maybe Val
 fetch env s = eBindings env !? s <|> ((eParent env) >>= (\e -> fetch e s))
 
 -- type CrispState = StateT Environment IO ()
 
 sed :: [(String, Crisp)] -> Crisp -> Crisp
 sed bindings (CrSExpr crs) = CrSExpr $ sed bindings <$> crs
-sed bindings o@(CrAtom (ASymbol os)) = case fromList bindings !? os of
-  Nothing -> o
-  Just ns -> ns
+sed bindings o@(CrAtom (ASymbol os)) = fromMaybe o $ fromList bindings !? os
 sed _ cr = cr
 
-eval :: Environment -> Crisp -> (Val, Environment)
+eval :: Environment -> Crisp -> Val
 eval env expr = case expr of
   CrAtom (ASymbol s) ->
-    eval env $ fromMaybe (error "Undefined symbol") $ fetch env s
+    fromMaybe (error $ "Undefined symbol " ++ show s ++ " from " ++ show env) $
+      fetch env s
   CrAtom (ABool b) ->
-    (VBool b, env)
+    VBool b
   CrAtom (AInteger i) ->
-    (VInteger i, env)
+    VInteger i
   CrSExpr [] ->
-    (VEmptyTuple (), env)
+    VEmptyTuple ()
   CrSExpr [CrAtom (ASymbol "if"), p, t, f] ->
     case eval env p of
-      (VBool b, _) ->
-        if b
-          then eval env t
-          else eval env f
+      VBool b ->
+        eval env $ if b then t else f
       _ ->
         error "Non-boolean in if condition"
   CrSExpr [CrAtom (ASymbol "let"), CrSExpr bindings, body] ->
     error "Unimplemented" bindings body
   CrSExpr [CrAtom (ASymbol "fn"), CrSExpr args, body] ->
-    ( VFunction
-        { fEnv = env
-        , fArgs = checkedArgs
-        , fBody = body
-        }
-    , env
-    )
+    VFunction
+      { fEnv = env
+      , fArgs = checkedArgs
+      , fKnownArgs = fromList []
+      , fBody = body
+      }
     where
       checkedArgs :: [String]
       checkedArgs =
         fromMaybe (error "Nonsybolic args") $
           sequence $
-            map
+            fmap
               ( \arg -> case arg of
                   (CrAtom (ASymbol s)) -> Just s
                   _ -> Nothing
               )
               args
   CrSExpr (f : args) ->
-    (runF (fst $ eval env f) args, env)
+    runF env (eval env f) args
 
-runF :: Val -> [Crisp] -> Val
-runF VFunction {fEnv, fArgs, fBody} args
+runF :: Environment -> Val -> [Crisp] -> Val
+runF env VFunction {fEnv, fArgs, fKnownArgs, fBody} args
   | argsN < fArgsN =
       VFunction
         { fEnv = fEnv
         , fArgs = drop argsN fArgs
-        , fBody = sed (zip fArgs args) fBody
+        , fKnownArgs = fKnownArgsNew
+        , fBody = fBody
         }
   | argsN == fArgsN =
-      fst $ eval fEnv $ sed (zip fArgs args) fBody
+      eval envNew fBody
   | otherwise =
       error "Too much args"
   where
     argsN = length args
     fArgsN = length fArgs
-runF _ _ = error "Not a function"
+
+    fKnownArgsNew :: Map String (Crisp, Environment)
+    fKnownArgsNew =
+      -- NOTE: order of (<>)
+      --  -> `(fn [a a] a)`
+      --  -> right `a` takes precedence
+      fromList
+        [ (s, (cr, env))
+        | s <- fArgs
+        | cr <- args
+        ]
+        <> fKnownArgs
+
+    envNew :: Environment
+    envNew =
+      Environment
+        { eBindings = (uncurry $ flip eval) <$> fKnownArgsNew
+        , eParent = Just fEnv
+        }
+runF _ _ _ = error "Not a function"
 
 ---

@@ -7,13 +7,12 @@ module Crisp.Parser (
 import Data.Foldable (asum)
 
 import Crisp.Datatypes (Atom (..), Crisp (..))
-import Data.List.NonEmpty (toList)
 import ParserCombinators.Datatypes (Parser (..))
 import ParserCombinators.Parser (
   between,
   bool,
   integer,
-  sepBy1,
+  sepBy,
   spaces,
   string,
   symbol,
@@ -43,7 +42,7 @@ sexpr =
       between
         (string left)
         (string right)
-        (toList <$> (crisp `sepBy1` spaces))
+        (crisp `sepBy` spaces)
 
 -- | Parse a whole crisp expression
 crisp :: Parser String [] String Crisp
