@@ -83,31 +83,31 @@ type family Token stream
 -- type instance Token ByteString = Word8
 type instance Token [a] = a
 
-instance Functor (Parser i m e) where
-  fmap :: (a -> b) -> Parser i m e a -> Parser i m e b
+instance Functor (Parser s m e) where
+  fmap :: (a -> b) -> Parser s m e a -> Parser s m e b
   fmap = liftM
 
-instance Applicative (Parser i m e) where
-  pure :: a -> Parser i m e a
+instance Applicative (Parser s m e) where
+  pure :: a -> Parser s m e a
   pure = return
 
-  (<*>) :: Parser i m e (a -> b) -> Parser i m e a -> Parser i m e b
+  (<*>) :: Parser s m e (a -> b) -> Parser s m e a -> Parser s m e b
   (<*>) = ap
 
-instance Monad (Parser i m e) where
-  return :: a -> Parser i m e a
+instance Monad (Parser s m e) where
+  return :: a -> Parser s m e a
   return a = Parser $ \input offset -> Right (offset, a, input)
 
-  (>>=) :: Parser i m e a -> (a -> Parser i m e b) -> Parser i m e b
+  (>>=) :: Parser s m e a -> (a -> Parser s m e b) -> Parser s m e b
   Parser p >>= k = Parser $ \input offset -> do
     (offset', output, rest) <- p input offset
     parse (k output) rest offset'
 
-instance (Alternative m) => Alternative (Parser i m e) where
-  empty :: Parser i m e a
+instance (Alternative m) => Alternative (Parser s m e) where
+  empty :: Parser s m e a
   empty = Parser $ \_ offset -> Left $ pure $ ParseError offset Empty
 
-  (<|>) :: Parser i m e a -> Parser i m e a -> Parser i m e a
+  (<|>) :: Parser s m e a -> Parser s m e a -> Parser s m e a
   (Parser l) <|> (Parser r) = Parser $ \input offset ->
     case l input offset of
       Left err_l ->
@@ -116,4 +116,4 @@ instance (Alternative m) => Alternative (Parser i m e) where
           Right (offset_r, output_r, rest_r) -> Right (offset_r, output_r, rest_r)
       Right (offset_l, output_l, rest_l) -> Right (offset_l, output_l, rest_l)
 
-instance (Alternative m) => MonadPlus (Parser i m e)
+instance (Alternative m) => MonadPlus (Parser s m e)
