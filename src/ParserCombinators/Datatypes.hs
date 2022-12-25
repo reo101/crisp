@@ -109,11 +109,9 @@ instance (Alternative m) => Alternative (Parser s m e) where
 
   (<|>) :: Parser s m e a -> Parser s m e a -> Parser s m e a
   (Parser l) <|> (Parser r) = Parser $ \input offset ->
-    case l input offset of
-      Left err_l ->
-        case r input offset of
-          Left err_r -> Left $ err_l <|> err_r
-          Right (offset_r, output_r, rest_r) -> Right (offset_r, output_r, rest_r)
-      Right (offset_l, output_l, rest_l) -> Right (offset_l, output_l, rest_l)
+    case (l input offset, r input offset) of
+      (Right res_l, _) -> Right res_l
+      (_, Right res_r) -> Right res_r
+      (Left err_l, Left err_r) -> Left $ err_l <|> err_r
 
 instance (Alternative m) => MonadPlus (Parser s m e)
