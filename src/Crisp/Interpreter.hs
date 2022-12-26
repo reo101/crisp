@@ -1,6 +1,5 @@
 {-# LANGUAGE GADTSyntax #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE ParallelListComp #-}
 
 module Crisp.Interpreter (
   Val (..),
@@ -18,6 +17,7 @@ import Control.Applicative (Alternative ((<|>)))
 import Crisp.Datatypes (Atom (..), Crisp (..))
 import Data.Map (Map, fromList, (!?))
 import Data.Maybe (fromMaybe)
+import Control.Arrow (second)
 
 data Val where
   VFunction ::
@@ -35,6 +35,15 @@ data Val where
     } ->
     Val
   VEmptyTuple :: () -> Val
+  VBuiltin :: Builtin -> Val
+  deriving (Show)
+
+data Builtin where
+  Cons :: Builtin
+  Car :: Builtin
+  Cdr :: Builtin
+  Plus :: Builtin
+  Equals :: Builtin
   deriving (Show)
 
 data Environment where
@@ -58,8 +67,15 @@ sed _ cr = cr
 eval :: Environment -> Crisp -> Val
 eval env expr = case expr of
   CrAtom (ASymbol s) ->
-    fromMaybe (error $ "Undefined symbol " ++ show s ++ " from " ++ show env) $
-      fetch env s
+    case s of
+      "cons" -> VBuiltin Cons
+      "car" -> VBuiltin Car
+      "cdr" -> VBuiltin Cdr
+      "=" -> VBuiltin Equals
+      "+" -> VBuiltin Plus
+      _ ->
+        fromMaybe (error $ "Undefined symbol " ++ show s ++ " from " ++ show env) $
+          fetch env s
   CrAtom (ABool b) ->
     VBool b
   CrAtom (AInteger i) ->
@@ -73,7 +89,23 @@ eval env expr = case expr of
       _ ->
         error "Non-boolean in if condition"
   CrSExpr [CrAtom (ASymbol "let"), CrSExpr bindings, body] ->
-    error "Unimplemented" bindings body
+    eval newEnv body
+    where
+      checkedBindings :: [(String, Crisp)]
+      checkedBindings =
+        fromMaybe (error "Bad bindings") $
+          sequence $
+            fmap
+              ( \binding -> case binding of
+                  (CrSExpr [CrAtom (ASymbol s), b]) -> Just (s, b)
+                  _ -> error ("Bad binding: " ++ show binding)
+              )
+              bindings
+      newEnv =
+        Environment
+          { eBindings = fromList $ (second $ eval newEnv) <$> checkedBindings
+          , eParent = Just env
+          }
   CrSExpr [CrAtom (ASymbol "fn"), CrSExpr args, body] ->
     VFunction
       { fEnv = env
@@ -117,11 +149,7 @@ runF env VFunction {fEnv, fArgs, fKnownArgs, fBody} args
       -- NOTE: order of (<>)
       --  -> `(fn [a a] a)`
       --  -> right `a` takes precedence
-      fromList
-        [ (s, (cr, env))
-        | s <- fArgs
-        | cr <- args
-        ]
+      fromList (zipWith (\s cr -> (s, (cr, env))) fArgs args)
         <> fKnownArgs
 
     envNew :: Environment
@@ -130,6 +158,38 @@ runF env VFunction {fEnv, fArgs, fKnownArgs, fBody} args
         { eBindings = (uncurry $ flip eval) <$> fKnownArgsNew
         , eParent = Just fEnv
         }
-runF _ _ _ = error "Not a function"
+runF env (VBuiltin b) args = case b of
+  Cons ->
+    case args of
+      [x, xs] -> VCons {car = eval env x, cdr = eval env xs}
+      _ -> error "Cons needs exactly 2 args"
+  Car ->
+    case args of
+      [p] -> case eval env p of
+        VCons x _ -> x
+        _ -> error ("Expected cons pair, got " ++ show p)
+      _ -> error "Car needs exactly 1 arg"
+  Cdr ->
+    case args of
+      [p] -> case eval env p of
+        VCons _ xs -> xs
+        _ -> error ("Expected cons pair, got " ++ show p)
+      _ -> error "Cdr needs exactly 1 arg"
+  Plus ->
+    case args of
+      [x, y] -> case (eval env x, eval env y) of
+        (VInteger xi, VInteger yi) -> VInteger $ xi + yi
+        _ -> error "Cannot add nonintegers"
+      _ -> error "+ expects exactly 2 args"
+  Equals ->
+    case args of
+      [x, y] -> case (eval env x, eval env y) of
+        (VInteger xi, VInteger yi) -> VBool $ xi == yi
+        (VEmptyTuple (), VEmptyTuple ()) -> VBool True
+        (_, VEmptyTuple ()) -> VBool False
+        (VEmptyTuple (), _) -> VBool False
+        _ -> error "Cannot compare nonintegers"
+      _ -> error "= expects exactly 2 args"
+runF _ nz _ = error ("Not a function: " ++ show nz)
 
 ---
