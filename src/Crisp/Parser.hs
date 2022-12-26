@@ -40,8 +40,8 @@ sexpr =
   where
     sexprWith (left, right) =
       between
-        (string left)
-        (string right)
+        (string left <* spaces)
+        (spaces *> string right)
         (crisp `sepBy` spaces)
 
 -- | Parse a whole crisp expression
