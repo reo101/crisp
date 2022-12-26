@@ -1,0 +1,8 @@
+(let [(a     (cons 1 (cons 2 (cons 3 ()))))
+      (foldr (fn [nv op l]
+                (if (= l ())
+                    nv
+                    (op (car l)
+                        (foldr nv op (cdr l))))))
+      (sum   (foldr 0 +))]
+  (sum a))
