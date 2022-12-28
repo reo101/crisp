@@ -1,0 +1,16 @@
+(define foldr
+  (let [(foldr (fn [nv op l]
+                 (if (= l ())
+                     nv
+                     (op (car l)
+                         foldr nv op (cdr l)))))]
+    foldr))
+
+(define const
+  (let [(const (fn [a b]
+                 a))]
+    const))
+
+(define length
+  (let [(legnth (foldr 0 (fn [x rec] (+ 1 rec))))]
+    length))

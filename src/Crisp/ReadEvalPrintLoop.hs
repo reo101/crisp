@@ -1,56 +1,36 @@
 module Crisp.ReadEvalPrintLoop where
 
-import Crisp.Datatypes (Atom (ASymbol), Crisp (..))
-import Crisp.Interpreter (Environment (..), Val (VEmptyTuple), eval)
+import Crisp.Interpreter (Environment (..), eval)
 import Crisp.Parser (crisp)
-import Data.Map (fromList)
 import ParserCombinators.Datatypes (Offset (..), Parser (..))
 import System.Console.Haskeline (InputT, getInputLine, outputStrLn)
+import Control.Monad.State (StateT(..))
 
 repl :: Offset -> Environment -> InputT IO ()
 repl offset env = do
   Just input <- getInputLine "crisp >>= "
 
-  let (env', offset', effect) =
-        case parse crisp input offset of
-          Left err ->
-            (env, offset, outputStrLn $ show err)
-          Right (offset'', code, "") ->
-            case eval' env code of
-              (env'', val) -> (env'', offset'', outputStrLn $ show val)
-          Right (_, _, _) ->
-            (env, offset, outputStrLn $ show "Too much code")
+  let parsedInput = parse crisp input offset
 
-  effect
+  case parsedInput of
+    Left err -> do
+      -- Parser couln't parse the input
+      outputStrLn (show err)
 
-  repl offset' env'
+      -- Repeat the REPL with the same environment
+      repl offset env
+    Right (offset', code, "") -> do
+      -- Evaluate the input in the current environment
+      (result, env') <- runStateT (eval code) env
 
-eval' :: Environment -> Crisp -> (Environment, Val)
-eval' env code =
-  case code of
-    CrSExpr [CrAtom (ASymbol "define"), CrAtom (ASymbol s), body] ->
-      -- (Environment {eBindings=fromList [(s, eval env body)], eParent=Just env}, VEmptyTuple ())
-      ( env {eBindings = fromList [(s, eval env body)] <> eBindings env}
-      , VEmptyTuple ()
-      )
-    _ -> (env, eval env code)
+      -- Print the result of the evaluation
+      outputStrLn (show result)
 
--- -- The Read Eval Print Loop itself.
--- loop :: Environment -> IO ()
--- loop env =
---   do putStr "> "
---      hFlush stdout
---      line <- getLine
---      if line == "quit"
---        then return ()
---        else do
---          let parser = analyzeExpressionSequence . parseSequence . tokenize
---              (newEnv, result) = (evalSequence env (parser line))
---          putStrLn $ show result
---          hFlush stdout
---          loop newEnv
---
--- readEvalPrintLoop :: IO ()
--- readEvalPrintLoop = do env <- loadCoreLibrary
---                        putStr welcomeMessage
---                        loop env
+      -- Repeat the REPL with the updated environment
+      repl offset' env'
+    Right (_, _, _) -> do
+      -- Parser couln't parse the whole input - too much (unparsable) code
+      outputStrLn "Too much code"
+
+      -- Repeat the REPL with the same environment
+      repl offset env
