@@ -11,14 +11,15 @@ module Crisp.Interpreter (
   Val (..),
   Environment (..),
   fetch,
-  sed,
   eval,
   runF,
+  emptyEnv,
 ) where
 
 import Control.Applicative (Alternative ((<|>)))
 
-import Control.Monad.State (MonadState (..), evalStateT, modify, MonadFix)
+-- import Control.Monad.Except (MonadError(..))
+import Control.Monad.State (MonadFix, MonadState (..), evalStateT, modify)
 import Crisp.Datatypes (Atom (..), Crisp (..))
 import Data.Either (partitionEithers)
 import Data.Kind (Type)
@@ -61,17 +62,34 @@ data Environment where
     Environment
   deriving (Show)
 
+emptyEnv :: Environment
+emptyEnv =
+  Environment
+    { eBindings = fromList []
+    , eParent = Nothing
+    }
+
 fetch :: Environment -> String -> Maybe Val
 fetch env s = eBindings env !? s <|> ((eParent env) >>= (\e -> fetch e s))
 
-sed :: [(String, Crisp)] -> Crisp -> Crisp
-sed bindings (CrSExpr crs) = CrSExpr $ sed bindings <$> crs
-sed bindings o@(CrAtom (ASymbol os)) = fromMaybe o $ fromList bindings !? os
-sed _ cr = cr
+-- fetch env s =
+--   trace
+--     ( "'"
+--         ++ show s
+--         ++ "' from '"
+--         ++ show (eBindings env)
+--         ++ "' >>> '"
+--         ++ show (eBindings env !? s)
+--         ++ "'"
+--     )
+--     $ eBindings env !? s <|> ((eParent env) >>= (\e -> fetch e s))
+
+makeError :: String -> a
+makeError = error
 
 eval ::
   forall (m :: Type -> Type).
-  (MonadState Environment m, MonadFail m, MonadFix m) =>
+  (MonadState Environment m, MonadFix m) =>
   Crisp ->
   m Val
 eval expr = do
@@ -79,7 +97,8 @@ eval expr = do
 
   case expr of
     CrAtom (ASymbol s) -> do
-      either fail return $
+      either makeError return $
+        -- TODO: prioritize user vars over builtins
         case s of
           "define" -> Right $ VBuiltin Define
           "cons" -> Right $ VBuiltin Cons
@@ -102,20 +121,14 @@ eval expr = do
         VBool b -> do
           eval $ if b then t else f
         _ ->
-          fail "Non-boolean in if condition"
-    CrSExpr [CrAtom (ASymbol "let"), CrSExpr bindings, body] -> mdo
-      checkedBindings <- genCheckedBindings newEnv
-
-      let newEnv =
-            Environment
-              { eBindings = fromList $ checkedBindings
-              , eParent = Just env
-              }
+          makeError "Non-boolean in if condition"
+    CrSExpr [CrAtom (ASymbol "let"), CrSExpr bindings, body] -> do
+      newEnv <- genNewEnv
 
       evalStateT (eval body) newEnv
       where
-        genCheckedBindings :: Environment -> m [(String, Val)]
-        genCheckedBindings newEnv = do
+        genNewEnv :: m Environment
+        genNewEnv = mdo
           oldState <- get
           put newEnv
           let eitherParserBindings =
@@ -128,7 +141,12 @@ eval expr = do
           parsedBindings <- accumulateEithers $ eitherParserBindings
           evaluatedBindings <- mapM (\(s, b) -> (s,) <$> eval b) parsedBindings
           put oldState
-          return evaluatedBindings
+          let newEnv =
+                Environment
+                  { eBindings = fromList $ evaluatedBindings
+                  , eParent = Just env
+                  }
+          return newEnv
     CrSExpr [CrAtom (ASymbol "fn"), CrSExpr args, body] -> do
       checkedArgs <- genCheckedArgs
 
@@ -142,13 +160,13 @@ eval expr = do
       where
         genCheckedArgs :: m [String]
         genCheckedArgs =
-            accumulateEithers $
-              fmap
-                ( \arg -> case arg of
-                    (CrAtom (ASymbol s)) -> Right $ s
-                    _ -> Left $ fail ("Nonsybolic binding: " ++ show arg)
-                )
-                args
+          accumulateEithers $
+            fmap
+              ( \arg -> case arg of
+                  (CrAtom (ASymbol s)) -> Right $ s
+                  _ -> Left $ ("Nonsybolic binding: " ++ show arg)
+              )
+              args
     CrSExpr (fCode : args) -> do
       f <- eval fCode
       runF f args
@@ -156,13 +174,12 @@ eval expr = do
     accumulateEithers :: [Either String r] -> m [r]
     accumulateEithers es = do
       let (errors, results) = partitionEithers es
-      case errors of
-        [] -> return results
-        (err:_) -> fail err
+      mapM_ makeError errors
+      return results
 
 runF ::
   forall (m :: Type -> Type).
-  (MonadState Environment m, MonadFail m, MonadFix m) =>
+  (MonadState Environment m, MonadFix m) =>
   Val ->
   [Crisp] ->
   m Val
@@ -182,7 +199,7 @@ runF VFunction {fEnv, fArgs, fKnownArgs, fBody} args = do
           newEnv <- genNewEnv
           evalStateT (eval fBody) newEnv
       | otherwise -> do
-          fail "Too much args"
+          makeError "Too much args"
   where
     argsN = length args
     fArgsN = length fArgs
@@ -214,7 +231,7 @@ runF (VBuiltin b) args = do
     Define ->
       case args of
         [sCode, bodyCode] -> do
-          either err id $ case sCode of
+          either makeError id $ case sCode of
             CrAtom (ASymbol s) -> Right $ mdo
               modify $
                 ( \st ->
@@ -226,28 +243,28 @@ runF (VBuiltin b) args = do
               body <- eval bodyCode
               return $ VEmptyTuple ()
             _ -> Left $ "define expects a symbol for its first argument"
-        _ -> err "define expects 2 args"
+        _ -> makeError "define expects 2 args"
     Equals ->
       case args of
         [xCode, yCode] -> do
           x <- eval xCode
           y <- eval yCode
-          handleError $ case (x, y) of
+          either makeError return $ case (x, y) of
             (VInteger xi, VInteger yi) -> Right $ VBool $ xi == yi
             (VEmptyTuple (), VEmptyTuple ()) -> Right $ VBool True
             (_, VEmptyTuple ()) -> Right $ VBool False
             (VEmptyTuple (), _) -> Right $ VBool False
             _ -> Left $ "Cannot compare nonintegers"
-        _ -> err "= expects exactly 2 args"
+        _ -> makeError "= expects exactly 2 args"
     Plus ->
       case args of
         [xCode, yCode] -> do
           x <- eval xCode
           y <- eval yCode
-          handleError $ case (x, y) of
+          either makeError return $ case (x, y) of
             (VInteger xi, VInteger yi) -> Right $ VInteger $ xi + yi
             _ -> Left $ "Cannot add nonintegers"
-        _ -> err "+ expects exactly 2 args"
+        _ -> makeError "+ expects exactly 2 args"
     Cons ->
       case args of
         [xCode, xsCode] -> do
@@ -258,29 +275,23 @@ runF (VBuiltin b) args = do
               { car = x
               , cdr = xs
               }
-        _ -> err "Cons needs exactly 2 args"
+        _ -> makeError "Cons needs exactly 2 args"
     Car ->
       case args of
         [pCode] -> do
           p <- eval pCode
-          handleError $ case p of
+          either makeError return $ case p of
             VCons x _ -> Right $ x
             _ -> Left ("Expected cons pair, got " ++ show pCode)
-        _ -> err "Car needs exactly 1 arg"
+        _ -> makeError "Car needs exactly 1 arg"
     Cdr ->
       case args of
         [pCode] -> do
           p <- eval pCode
-          handleError $ case p of
+          either makeError return $ case p of
             VCons _ xs -> Right $ xs
             _ -> Left ("Expected cons pair, got " ++ show pCode)
-        _ -> err "Cdr needs exactly 1 arg"
-  where
-    err :: String -> m a
-    err = fail
-
-    handleError :: Either String r -> m r
-    handleError = either err return
-runF nz _ = fail ("Not a function: " ++ show nz)
+        _ -> makeError "Cdr needs exactly 1 arg"
+runF nz _ = makeError ("Not a function: " ++ show nz)
 
 ---

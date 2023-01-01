@@ -1,12 +1,9 @@
 module Main where
 
-import Crisp.Interpreter (Environment(..))
-import Data.Map (fromList)
-import System.Console.Haskeline (runInputT, defaultSettings)
+import Crisp.Interpreter (emptyEnv)
 import Crisp.ReadEvalPrintLoop (repl)
+import System.Console.Haskeline (defaultSettings, runInputT)
 
 main :: IO ()
 main = do
-  let offset = 0
-  let env = Environment { eBindings = fromList [], eParent = Nothing }
-  runInputT defaultSettings $ repl offset env
+  runInputT defaultSettings $ repl 0 emptyEnv
