@@ -115,7 +115,7 @@ symbol = some $ token forbidden validate
   where
     forbidden i = CustomError $ "Forbidden symbol character " ++ show i
     validate c =
-      if isAlphaNum c
+      if isAlphaNum c || c `elem` "+-=./"
         then Just c
         else Nothing
 
