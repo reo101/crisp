@@ -98,17 +98,24 @@ eval expr = do
   case expr of
     CrAtom (ASymbol s) -> do
       either makeError return $
-        -- TODO: prioritize user vars over builtins
-        case s of
+        asum
+          [ maybeToEither "" $ fetch env s
+          , builtin
+          , Left $ "Undefined symbol " ++ show s ++ " from " ++ show env
+          ]
+      where
+        maybeToEither :: a -> Maybe b -> Either a b
+        maybeToEither x = fromMaybe (Left x) . fmap Right
+
+        builtin :: Either String Val
+        builtin = case s of
           "define" -> Right $ VBuiltin Define
           "cons" -> Right $ VBuiltin Cons
           "car" -> Right $ VBuiltin Car
           "cdr" -> Right $ VBuiltin Cdr
           "=" -> Right $ VBuiltin Equals
           "+" -> Right $ VBuiltin Plus
-          _ ->
-            fromMaybe (Left $ "Undefined symbol " ++ show s ++ " from " ++ show env) $
-              Right <$> fetch env s
+          _ -> Left $ "No such builtin " ++ show s
     CrAtom (ABool b) -> do
       return $ VBool b
     CrAtom (AInteger i) -> do
