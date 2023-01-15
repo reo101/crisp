@@ -22,7 +22,7 @@ import Control.Applicative (Alternative ((<|>)))
 import Control.Monad.State (MonadFix, MonadState (..), evalStateT, modify)
 import Crisp.Datatypes (Atom (..), Crisp (..))
 import Data.Either (partitionEithers)
-import Data.Foldable (asum)
+import Data.Foldable (asum, traverse_)
 import Data.Kind (Type)
 import Data.Map (Map, fromList, (!?))
 import Data.Maybe (fromMaybe)
@@ -147,7 +147,7 @@ eval expr = do
                   )
                   bindings
           parsedBindings <- accumulateEithers $ eitherParserBindings
-          evaluatedBindings <- mapM (\(s, b) -> (s,) <$> eval b) parsedBindings
+          evaluatedBindings <- traverse (\(s, b) -> (s,) <$> eval b) parsedBindings
           put oldState
           let newEnv =
                 Environment
@@ -182,7 +182,7 @@ eval expr = do
     accumulateEithers :: [Either String r] -> m [r]
     accumulateEithers es = do
       let (errors, results) = partitionEithers es
-      mapM_ makeError errors
+      traverse_ makeError errors
       return results
 
 runF ::

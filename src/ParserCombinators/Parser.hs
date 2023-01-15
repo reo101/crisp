@@ -71,7 +71,7 @@ char i = token (Expected i) (ensure (== i))
 
 -- | Parse a string/symbol
 string :: Eq i => [i] -> Parser [i] [] e [i]
-string = mapM char
+string = traverse char
 
 -- | Parse between the specified open and close parsers
 between :: Parser [i] m e a -> Parser [i] m e b -> Parser [i] m e c -> Parser [i] m e c
