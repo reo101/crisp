@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTSyntax #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -19,13 +20,15 @@ module Crisp.Interpreter (
 import Control.Applicative (Alternative ((<|>)))
 
 -- import Control.Monad.Except (MonadError(..))
+
+import Control.Arrow (Arrow (second))
 import Control.Monad.State (MonadFix, MonadState (..), evalStateT, modify)
 import Crisp.Datatypes (Atom (..), Crisp (..))
 import Data.Either (partitionEithers)
-import Data.Foldable (asum, traverse_)
+import Data.Foldable (traverse_)
 import Data.Kind (Type)
 import Data.Map (Map, fromList, (!?))
-import Data.Maybe (fromMaybe)
+import Text.Printf (printf)
 
 data Val where
   VFunction ::
@@ -44,12 +47,43 @@ data Val where
     Val
   VEmptyTuple :: () -> Val
   VBuiltin :: Builtin -> Val
-  deriving (Show)
+
+instance Show Val where
+  show :: Val -> String
+  -- TODO: hashing of environments to prevent infinite `show`s
+  show VFunction {fEnv, fArgs, fKnownArgs, fBody} =
+    printf
+      "VFunction { fEnv = %s, fArgs = %s, fKnownArgs = %s, fBody = %s }"
+      "'some env'"
+      (show fArgs)
+      (show $ second (const "'some env'") <$> fKnownArgs)
+      (show fBody)
+  show (VBool b) =
+    printf
+      "VBool %s"
+      (show b)
+  show (VInteger i) =
+    printf
+      "VInteger %s"
+      (show i)
+  show VCons {car, cdr} =
+    printf
+      "VCons { car = %s, cdr = %s }"
+      (show car)
+      (show cdr)
+  show (VEmptyTuple ()) =
+    printf
+      "VEmptyTuple ()"
+  show (VBuiltin b) =
+    printf
+      "VBuiltin %s"
+      (show b)
 
 data Builtin where
   Define :: Builtin
   Equals :: Builtin
   Plus :: Builtin
+  Minus :: Builtin
   Cons :: Builtin
   Car :: Builtin
   Cdr :: Builtin
@@ -61,7 +95,15 @@ data Environment where
     , eParent :: Maybe Environment
     } ->
     Environment
-  deriving (Show)
+
+instance Show Environment where
+  show :: Environment -> String
+  -- TODO: hashing of environments to prevent infinite `show`s
+  show Environment {eBindings, eParent} =
+    printf
+      "Environment { eBindings = %s, eParent = %s }"
+      (show eBindings)
+      "'won't show because of possible cyclic dependency'"
 
 emptyEnv :: Environment
 emptyEnv =
@@ -99,24 +141,21 @@ eval expr = do
   case expr of
     CrAtom (ASymbol s) -> do
       either makeError return $
-        asum
-          [ maybeToEither "" $ fetch env s
-          , builtin
-          , Left $ "Undefined symbol " ++ show s ++ " from " ++ show env
-          ]
+        if
+            | Just d <- fetch env s -> Right $ d
+            | Just b <- builtin -> Right $ b
+            | otherwise -> Left $ "Undefined symbol " ++ show s ++ " from " ++ show env
       where
-        maybeToEither :: a -> Maybe b -> Either a b
-        maybeToEither x = fromMaybe (Left x) . fmap Right
-
-        builtin :: Either String Val
+        builtin :: Maybe Val
         builtin = case s of
-          "define" -> Right $ VBuiltin Define
-          "cons" -> Right $ VBuiltin Cons
-          "car" -> Right $ VBuiltin Car
-          "cdr" -> Right $ VBuiltin Cdr
-          "=" -> Right $ VBuiltin Equals
-          "+" -> Right $ VBuiltin Plus
-          _ -> Left $ "No such builtin " ++ show s
+          "define" -> Just $ VBuiltin Define
+          "cons" -> Just $ VBuiltin Cons
+          "car" -> Just $ VBuiltin Car
+          "cdr" -> Just $ VBuiltin Cdr
+          "=" -> Just $ VBuiltin Equals
+          "+" -> Just $ VBuiltin Plus
+          "-" -> Just $ VBuiltin Minus
+          _ -> Nothing
     CrAtom (ABool b) -> do
       return $ VBool b
     CrAtom (AInteger i) -> do
@@ -280,6 +319,15 @@ runF (VBuiltin b) args = do
             (VInteger xi, VInteger yi) -> Right $ VInteger $ xi + yi
             _ -> Left $ "Cannot add nonintegers"
         _ -> makeError "+ expects exactly 2 args"
+    Minus ->
+      case args of
+        [xCode, yCode] -> do
+          x <- eval xCode
+          y <- eval yCode
+          either makeError return $ case (x, y) of
+            (VInteger xi, VInteger yi) -> Right $ VInteger $ xi - yi
+            _ -> Left $ "Cannot subtract nonintegers"
+        _ -> makeError "- expects exactly 2 args"
     Cons ->
       case args of
         [xCode, xsCode] -> do
