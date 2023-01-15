@@ -202,11 +202,18 @@ runF VFunction {fEnv, fArgs, fKnownArgs, fBody} args = do
               , fKnownArgs = fKnownArgsNew env
               , fBody = fBody
               }
-      | argsN == fArgsN -> do
+      | argsN > fArgsN -> do
+          let leftArgs = drop fArgsN args
+          newEnv <- genNewEnv
+          -- NOTE: genNewEnv `zip`s args and fArgs and fArgsN is shorter here
+          -- NOTE: parse, don't validate?
+          res <- evalStateT (eval fBody) newEnv
+          either makeError id $ case res of
+            VFunction {} -> Right $ runF res leftArgs
+            _ -> Left $ "Too much arguments passed (" ++ show leftArgs ++ ")"
+      | otherwise -> do
           newEnv <- genNewEnv
           evalStateT (eval fBody) newEnv
-      | otherwise -> do
-          makeError "Too much args"
   where
     argsN = length args
     fArgsN = length fArgs
