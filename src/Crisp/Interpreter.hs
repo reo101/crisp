@@ -84,6 +84,7 @@ data Builtin where
   Equals :: Builtin
   Plus :: Builtin
   Minus :: Builtin
+  List :: Builtin
   Cons :: Builtin
   Car :: Builtin
   Cdr :: Builtin
@@ -149,6 +150,7 @@ eval expr = do
         builtin :: Maybe Val
         builtin = case s of
           "define" -> Just $ VBuiltin Define
+          "list" -> Just $ VBuiltin List
           "cons" -> Just $ VBuiltin Cons
           "car" -> Just $ VBuiltin Car
           "cdr" -> Just $ VBuiltin Cdr
@@ -328,6 +330,10 @@ runF (VBuiltin b) args = do
             (VInteger xi, VInteger yi) -> Right $ VInteger $ xi - yi
             _ -> Left $ "Cannot subtract nonintegers"
         _ -> makeError "- expects exactly 2 args"
+    List ->
+      do
+        elems <- traverse eval args
+        return $ foldr VCons (VEmptyTuple ()) elems
     Cons ->
       case args of
         [xCode, xsCode] -> do
