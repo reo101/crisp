@@ -1,4 +1,13 @@
-(define const (fn [a b] b))
+(define const (fn [a b] a))
 (define foldr (fn [nv op l] (if {= () l} nv [op (car l) (foldr nv op (cdr l))])))
 (define length (foldr 0 (const (fn [a] (+ a 1)))))
 (define id (fn [x] x))
+(define not (fn [x] (if x false true)))
+
+(define even
+  (fn [x]
+    (let [(even (fn [x] (if [= 0 x] true (not (odd x)))))
+          (odd  (fn [x] (even (- x 1))))]
+       (even x))))
+
+(define even (fn [x] (let [(even (fn [x] (if [= 0 x] true (not (odd x))))) (odd  (fn [x] (even (- x 1))))] (even x))))
