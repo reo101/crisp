@@ -1,13 +1,25 @@
 (define const (fn [a b] a))
 (define foldr (fn [nv op l] (if {= () l} nv [op (car l) (foldr nv op (cdr l))])))
+(define mult (fn [n m] (if (= n 1) m (+ m (mult (- n 1) m)))))
 (define length (foldr 0 (const (fn [a] (+ a 1)))))
+(define sum (foldr 0 +))
 (define id (fn [x] x))
 (define not (fn [x] (if x false true)))
 
-(define even
-  (fn [x]
-    (let [(even (fn [x] (if [= 0 x] true (not (odd x)))))
-          (odd  (fn [x] (even (- x 1))))]
-       (even x))))
+(define I  (fn [x]       x))
+(define K  (fn [x y]     x))
+(define A  (fn [f x]     (f x)))
+(define T  (fn [x f]     (f x)))
+(define W  (fn [f x]     (f x x)))
+(define C  (fn [f y x]   (f x y)))
+(define B  (fn [f g x]   (f (g x))))
+(define S  (fn [f g x]   (f x (g x))))
+(define S_ (fn [f g x]   (f (g x) x)))
+(define S2 (fn [f g h x] (f (g x) (h x))))
+(define P  (fn [f g x y] (f (g x) (g y))))
+(define Y  (fn [f]       ((fn [g] (g g)) (fn [x] (f (x x))))))
+(define Z  (fn [f]       ((fn [g] (g g)) (fn [g] (f (fn [x] (g g x)))))))
+
+(define fact (Y (fn [fact n] (if (= 0 n) 1 (mult n (fact (- n 1)))))))
 
 (define even (fn [x] (let [(even (fn [x] (if [= 0 x] true (not (odd x))))) (odd  (fn [x] (even (- x 1))))] (even x))))

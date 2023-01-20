@@ -51,7 +51,7 @@ data Val where
 instance Show Val where
   show :: Val -> String
   -- TODO: hashing of environments to prevent infinite `show`s
-  show VFunction {fEnv, fArgs, fKnownArgs, fBody} =
+  show VFunction {fEnv = _, fArgs, fKnownArgs, fBody} =
     printf
       "VFunction { fEnv = %s, fArgs = %s, fKnownArgs = %s, fBody = %s }"
       "'some env'"
@@ -100,7 +100,7 @@ data Environment where
 instance Show Environment where
   show :: Environment -> String
   -- TODO: hashing of environments to prevent infinite `show`s
-  show Environment {eBindings, eParent} =
+  show Environment {eBindings, eParent = _} =
     printf
       "Environment { eBindings = %s, eParent = %s }"
       (show eBindings)
