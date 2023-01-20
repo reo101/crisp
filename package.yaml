@@ -13,6 +13,20 @@ extra-source-files:
 
 dependencies:
 - base >= 4.7 && < 5
+- containers
+- haskeline
+- mtl
+
+executables:
+  crisp-exe:
+    main:               Main.hs
+    source-dirs:        app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - crisp
 
 library:
   source-dirs: src

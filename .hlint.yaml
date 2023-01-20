@@ -1,0 +1,4 @@
+# - ignore:
+#   name: Unused LANGUAGE pragma
+- ignore:
+  name: Use lambda-case
