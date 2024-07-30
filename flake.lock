@@ -1,27 +1,45 @@
 {
   "nodes": {
-    "flake-utils": {
+    "hix": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
       "locked": {
-        "lastModified": 1667395993,
-        "narHash": "sha256-nuEHfE/LcWyuSWnS8t12N1wc105Qtau+/OdUAjtQ0rA=",
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "rev": "5aed5285a952e0b949eb3ba02c12fa4fcfef535f",
-        "type": "github"
+        "lastModified": 1717035642,
+        "narHash": "sha256-b2A/HXw1mtPmD/RaltXJoPGNU5T6LabUtWmbkYMX0as=",
+        "rev": "4435fae77d2f786c34ddb81a69d4f5187d194319",
+        "revCount": 749,
+        "type": "tarball",
+        "url": "https://api.flakehub.com/f/pinned/tek/hix/0.7.1/018fc74f-9983-7821-a660-5669000c0f67/source.tar.gz"
       },
       "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "type": "github"
+        "type": "tarball",
+        "url": "https://flakehub.com/f/tek/hix/~0.7.tar.gz"
       }
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1670841420,
-        "narHash": "sha256-mSEia1FzrsHbfqjorMyYiX8NXdDVeR1Pw1k55jMJlJY=",
+        "lastModified": 1713964598,
+        "narHash": "sha256-p+CXCrOuWFVBpjaknbpenkxdYt097mOI4VBMqlHv46E=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "4f6ebb60e63f3ccd1024eb2f31e653d2fe03fa66",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "4f6ebb60e63f3ccd1024eb2f31e653d2fe03fa66",
+        "type": "github"
+      }
+    },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1722062969,
+        "narHash": "sha256-QOS0ykELUmPbrrUGmegAUlpmUFznDQeR4q7rFhl8eQg=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "33e0d99cbedf2acfd7340d2150837fbb28039a64",
+        "rev": "b73c2221a46c13557b1b3be9c2070cc42cf01eb3",
         "type": "github"
       },
       "original": {
@@ -33,8 +51,8 @@
     },
     "root": {
       "inputs": {
-        "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "hix": "hix",
+        "nixpkgs": "nixpkgs_2"
       }
     }
   },

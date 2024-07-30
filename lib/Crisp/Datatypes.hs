@@ -1,7 +1,11 @@
 {-# LANGUAGE GADTSyntax #-}
 {-# LANGUAGE InstanceSigs #-}
 
-module Crisp.Datatypes where
+module Crisp.Datatypes (
+  Atom (..),
+  Crisp (..),
+)
+where
 
 ---------------------
 ---- Crisp Types ----
@@ -11,7 +15,7 @@ data Atom where
   AInteger :: Integer -> Atom
   ABool :: Bool -> Atom
   ASymbol :: String -> Atom
-  deriving (Show)
+  deriving stock (Show)
 
 ---------------
 ---- Crisp ----
@@ -20,4 +24,4 @@ data Atom where
 data Crisp where
   CrAtom :: Atom -> Crisp
   CrSExpr :: [Crisp] -> Crisp
-  deriving (Show)
+  deriving stock (Show)

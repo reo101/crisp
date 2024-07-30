@@ -1,0 +1,103 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.36.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           crisp
+version:        0.1.0.0
+synopsis:       Crisp, A Curried Lisp
+description:    See https://hackage.haskell.org/package/crisp/docs/Crisp.html
+author:         reo101
+maintainer:     reo101
+copyright:      2023 reo101
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+
+library
+  exposed-modules:
+      Crisp.Datatypes
+      Crisp.Interpreter
+      Crisp.Parser
+      Crisp.ReadEvalPrintLoop
+      ParserCombinators.Datatypes
+      ParserCombinators.Parser
+  other-modules:
+      Paths_crisp
+  hs-source-dirs:
+      lib
+  default-extensions:
+      DerivingStrategies
+      DeriveAnyClass
+      DataKinds
+      BlockArguments
+      LambdaCase
+      ExplicitNamespaces
+      RecordWildCards
+      OverloadedRecordDot
+      OverloadedStrings
+      UndecidableInstances
+      TypeFamilies
+  ghc-options: -Wall -Wunused-type-patterns -Wunused-packages -Wmissing-deriving-strategies -Wredundant-constraints -Widentities -Wmissing-export-lists -Wno-name-shadowing
+  build-depends:
+      base ==4.*
+    , containers
+    , haskeline
+    , mtl
+  default-language: GHC2021
+
+executable crisp
+  main-is: Main.hs
+  other-modules:
+      Paths_crisp
+  hs-source-dirs:
+      app
+  default-extensions:
+      DerivingStrategies
+      DeriveAnyClass
+      DataKinds
+      BlockArguments
+      LambdaCase
+      ExplicitNamespaces
+      RecordWildCards
+      OverloadedRecordDot
+      OverloadedStrings
+      UndecidableInstances
+      TypeFamilies
+  ghc-options: -Wall -Wunused-type-patterns -Wunused-packages -Wmissing-deriving-strategies -Wredundant-constraints -Widentities -Wmissing-export-lists -Wno-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base ==4.*
+    , crisp
+    , haskeline
+  default-language: GHC2021
+
+test-suite crisp-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      CrispSpec
+      Paths_crisp
+  hs-source-dirs:
+      test
+  default-extensions:
+      DerivingStrategies
+      DeriveAnyClass
+      DataKinds
+      BlockArguments
+      LambdaCase
+      ExplicitNamespaces
+      RecordWildCards
+      OverloadedRecordDot
+      OverloadedStrings
+      UndecidableInstances
+      TypeFamilies
+  ghc-options: -Wall -Wunused-type-patterns -Wunused-packages -Wmissing-deriving-strategies -Wredundant-constraints -Widentities -Wmissing-export-lists -Wno-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , crisp
+    , generic-random
+    , hspec
+    , mtl
+  default-language: GHC2021

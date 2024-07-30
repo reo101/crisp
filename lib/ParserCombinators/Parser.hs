@@ -83,7 +83,7 @@ between open close p = do
 
 -- | Parse one space, ignoring the result
 space :: Parser String [] e ()
-space = void $ asum $ char <$> " \n\t"
+space = void $ asum $ char <$> (" \n\t" :: [Char])
 
 -- | Parse zero or more spaces, ignoring the result
 spaces :: Parser String [] e ()
@@ -115,7 +115,7 @@ symbol = some $ token forbidden validate
   where
     forbidden i = CustomError $ "Forbidden symbol character " ++ show i
     validate c =
-      if isAlphaNum c || c `elem` "+-=./"
+      if isAlphaNum c || c `elem` ("+-=./" :: [Char])
         then Just c
         else Nothing
 

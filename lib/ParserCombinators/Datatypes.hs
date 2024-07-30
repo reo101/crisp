@@ -5,6 +5,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -Wno-missing-export-lists #-}
 
 module ParserCombinators.Datatypes where
 
@@ -23,7 +24,7 @@ data ParseErrorType i e
   | ExpectedEndOfFile i
   | CustomError e
   | Empty
-  deriving (Eq)
+  deriving stock (Eq)
 
 instance (Show i, Show e) => Show (ParseErrorType i e) where
   show :: ParseErrorType i e -> String
@@ -89,15 +90,12 @@ instance Functor (Parser s m e) where
 
 instance Applicative (Parser s m e) where
   pure :: a -> Parser s m e a
-  pure = return
+  pure a = Parser $ \input offset -> Right (offset, a, input)
 
   (<*>) :: Parser s m e (a -> b) -> Parser s m e a -> Parser s m e b
   (<*>) = ap
 
 instance Monad (Parser s m e) where
-  return :: a -> Parser s m e a
-  return a = Parser $ \input offset -> Right (offset, a, input)
-
   (>>=) :: Parser s m e a -> (a -> Parser s m e b) -> Parser s m e b
   Parser p >>= k = Parser $ \input offset -> do
     (offset', output, rest) <- p input offset
