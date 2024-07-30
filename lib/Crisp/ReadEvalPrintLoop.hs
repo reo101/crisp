@@ -1,6 +1,8 @@
 {-# LANGUAGE TypeApplications #-}
 
-module Crisp.ReadEvalPrintLoop where
+module Crisp.ReadEvalPrintLoop (
+  repl,
+) where
 
 -- import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.Identity (Identity (..))
@@ -28,33 +30,33 @@ repl offset env = do
 
       let (result, env') =
             runIdentity $
-                (flip runStateT) env $
-                  eval @(StateT Environment Identity) code
+              (flip runStateT) env $
+                eval @(StateT Environment Identity) code
 
       outputStrLn (show result)
 
       repl offset' env'
 
-      --- Preferred implementation but loops on recursive `let`s
-      -- let takovata =
-      --       runIdentity $
-      --         runExceptT $
-      --           (flip runStateT) env $
-      --             eval @(StateT Environment (ExceptT String Identity)) code
-      --
-      -- case takovata of
-      --   Left s -> do
-      --     -- Interpretator couldn't interpret the code
-      --     outputStrLn s
-      --
-      --     -- Repeat the REPL with the same environment
-      --     repl offset env
-      --   Right (result, env') -> do
-      --     -- Print the result of the evaluation
-      --     outputStrLn (show result)
-      --
-      --     -- Repeat the REPL with the updated environment
-      --     repl offset' env'
+    --- Preferred implementation but loops on recursive `let`s
+    --   let takovata =
+    --         runIdentity $
+    --           runExceptT $
+    --             (flip runStateT) env $
+    --               eval @(StateT Environment (ExceptT String Identity)) code
+    --
+    --   case takovata of
+    --     Left s -> do
+    --       -- Interpretator couldn't interpret the code
+    --       outputStrLn s
+    --
+    --       -- Repeat the REPL with the same environment
+    --       repl offset env
+    --     Right (result, env') -> do
+    --       -- Print the result of the evaluation
+    --       outputStrLn (show result)
+    --
+    --       -- Repeat the REPL with the updated environment
+    --       repl offset' env'
     Right (_, _, _) -> do
       -- Parser couln't parse the whole input - too much (unparsable) code
       outputStrLn "Too much code"

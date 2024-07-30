@@ -5,6 +5,7 @@
 (define sum (foldr 0 +))
 (define id (fn [x] x))
 (define not (fn [x] (if x false true)))
+(define comp (fn [f g x] (f (g x))))
 
 (define I  (fn [x]       x))
 (define K  (fn [x y]     x))
@@ -23,3 +24,8 @@
 (define fact (Y (fn [fact n] (if (= 0 n) 1 (mult n (fact (- n 1)))))))
 
 (define even (fn [x] (let [(even (fn [x] (if [= 0 x] true (not (odd x))))) (odd  (fn [x] (even (- x 1))))] (even x))))
+(define odd (comp not even))
+
+(define consf (fn [x xs] (cons x xs)))
+(define map (fn [f] (foldr () (comp consf f)))
+  (let [(l (cons 1 (cons (2 cons 3 ()))))] (map (fn [a] (+ a 1)) l)))

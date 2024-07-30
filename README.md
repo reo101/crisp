@@ -20,8 +20,8 @@ stack run
 ## File Structure
 
 The project is split in two parts:
-- [`./src/ParserCombinators/`](./src/ParserCombinators/) - small Parser Combinator library with parser for `Crisp` itself
-- [`./src/Crisp/`](./src/Crisp/) - repl and interpreter for the already parsed `Crisp`
+- [`./lib/ParserCombinators/`](./lib/ParserCombinators/) - small Parser Combinator library with parser for `Crisp` itself
+- [`./lib/Crisp/`](./lib/Crisp/) - repl and interpreter for the already parsed `Crisp`
 
 ## Design
 

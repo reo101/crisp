@@ -54,9 +54,9 @@ instance Show Val where
   show VFunction {fEnv = _, fArgs, fKnownArgs, fBody} =
     printf
       "VFunction { fEnv = %s, fArgs = %s, fKnownArgs = %s, fBody = %s }"
-      "'some env'"
+      ("'some env'" :: String)
       (show fArgs)
-      (show $ second (const "'some env'") <$> fKnownArgs)
+      (show $ second (const ("'some env'" :: String)) <$> fKnownArgs)
       (show fBody)
   show (VBool b) =
     printf
@@ -88,7 +88,7 @@ data Builtin where
   Cons :: Builtin
   Car :: Builtin
   Cdr :: Builtin
-  deriving (Show)
+  deriving stock (Show)
 
 data Environment where
   Environment ::
@@ -104,7 +104,7 @@ instance Show Environment where
     printf
       "Environment { eBindings = %s, eParent = %s }"
       (show eBindings)
-      "'won't show because of possible cyclic dependency'"
+      ("'won't show because of possible cyclic dependency'" :: String)
 
 emptyEnv :: Environment
 emptyEnv =
