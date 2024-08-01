@@ -2,7 +2,9 @@
   "nodes": {
     "hix": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": [
+          "nixpkgs"
+        ]
       },
       "locked": {
         "lastModified": 1717035642,
@@ -18,22 +20,6 @@
       }
     },
     "nixpkgs": {
-      "locked": {
-        "lastModified": 1713964598,
-        "narHash": "sha256-p+CXCrOuWFVBpjaknbpenkxdYt097mOI4VBMqlHv46E=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "4f6ebb60e63f3ccd1024eb2f31e653d2fe03fa66",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "4f6ebb60e63f3ccd1024eb2f31e653d2fe03fa66",
-        "type": "github"
-      }
-    },
-    "nixpkgs_2": {
       "locked": {
         "lastModified": 1722062969,
         "narHash": "sha256-QOS0ykELUmPbrrUGmegAUlpmUFznDQeR4q7rFhl8eQg=",
@@ -52,7 +38,7 @@
     "root": {
       "inputs": {
         "hix": "hix",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs"
       }
     }
   },

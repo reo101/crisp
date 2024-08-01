@@ -17,34 +17,61 @@ build-type:     Simple
 
 library
   exposed-modules:
-      Crisp.Datatypes
-      Crisp.Interpreter
       Crisp.Parser
-      Crisp.ReadEvalPrintLoop
-      ParserCombinators.Datatypes
-      ParserCombinators.Parser
   other-modules:
       Paths_crisp
   hs-source-dirs:
       lib
   default-extensions:
-      DerivingStrategies
-      DeriveAnyClass
-      DataKinds
+      AllowAmbiguousTypes
       BlockArguments
-      LambdaCase
+      DataKinds
+      DeriveAnyClass
+      DeriveGeneric
+      DerivingStrategies
+      DuplicateRecordFields
+      ExplicitForAll
       ExplicitNamespaces
-      RecordWildCards
+      FlexibleContexts
+      GADTSyntax
+      GADTs
+      LambdaCase
+      MultiWayIf
+      NoFieldSelectors
+      NoMonomorphismRestriction
+      OverloadedLabels
       OverloadedRecordDot
       OverloadedStrings
-      UndecidableInstances
+      PolyKinds
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      TemplateHaskell
+      TypeApplications
       TypeFamilies
-  ghc-options: -Wall -Wunused-type-patterns -Wunused-packages -Wmissing-deriving-strategies -Wredundant-constraints -Widentities -Wmissing-export-lists -Wno-name-shadowing
+      TypeOperators
+      UndecidableInstances
+      UnicodeSyntax
+      ViewPatterns
+  ghc-options: -Wall -Wunused-type-patterns -Wunused-packages -Wmissing-deriving-strategies -Wredundant-constraints -Widentities -Wmissing-export-lists -Wno-name-shadowing -O2 -flate-specialise -fspecialise-aggressively -fplugin=Polysemy.Plugin
   build-depends:
       base ==4.*
-    , containers
+    , bifunctors
+    , comonad
+    , composition
+    , deriving-compat
+    , extra
+    , free
+    , generic-lens
     , haskeline
-    , mtl
+    , lens
+    , megaparsec
+    , polysemy
+    , polysemy-plugin
+    , pretty-simple
+    , some
+    , text
+    , utility-ht
   default-language: GHC2021
 
 executable crisp
@@ -54,18 +81,37 @@ executable crisp
   hs-source-dirs:
       app
   default-extensions:
-      DerivingStrategies
-      DeriveAnyClass
-      DataKinds
+      AllowAmbiguousTypes
       BlockArguments
-      LambdaCase
+      DataKinds
+      DeriveAnyClass
+      DeriveGeneric
+      DerivingStrategies
+      DuplicateRecordFields
+      ExplicitForAll
       ExplicitNamespaces
-      RecordWildCards
+      FlexibleContexts
+      GADTSyntax
+      GADTs
+      LambdaCase
+      MultiWayIf
+      NoFieldSelectors
+      NoMonomorphismRestriction
+      OverloadedLabels
       OverloadedRecordDot
       OverloadedStrings
-      UndecidableInstances
+      PolyKinds
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      TemplateHaskell
+      TypeApplications
       TypeFamilies
-  ghc-options: -Wall -Wunused-type-patterns -Wunused-packages -Wmissing-deriving-strategies -Wredundant-constraints -Widentities -Wmissing-export-lists -Wno-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+      TypeOperators
+      UndecidableInstances
+      UnicodeSyntax
+      ViewPatterns
+  ghc-options: -Wall -Wunused-type-patterns -Wunused-packages -Wmissing-deriving-strategies -Wredundant-constraints -Widentities -Wmissing-export-lists -Wno-name-shadowing -O2 -flate-specialise -fspecialise-aggressively -fplugin=Polysemy.Plugin -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base ==4.*
     , crisp
@@ -81,23 +127,47 @@ test-suite crisp-test
   hs-source-dirs:
       test
   default-extensions:
-      DerivingStrategies
-      DeriveAnyClass
-      DataKinds
+      AllowAmbiguousTypes
       BlockArguments
-      LambdaCase
+      DataKinds
+      DeriveAnyClass
+      DeriveGeneric
+      DerivingStrategies
+      DuplicateRecordFields
+      ExplicitForAll
       ExplicitNamespaces
-      RecordWildCards
+      FlexibleContexts
+      GADTSyntax
+      GADTs
+      LambdaCase
+      MultiWayIf
+      NoFieldSelectors
+      NoMonomorphismRestriction
+      OverloadedLabels
       OverloadedRecordDot
       OverloadedStrings
-      UndecidableInstances
+      PolyKinds
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      TemplateHaskell
+      TypeApplications
       TypeFamilies
-  ghc-options: -Wall -Wunused-type-patterns -Wunused-packages -Wmissing-deriving-strategies -Wredundant-constraints -Widentities -Wmissing-export-lists -Wno-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+      TypeOperators
+      UndecidableInstances
+      UnicodeSyntax
+      ViewPatterns
+  ghc-options: -Wall -Wunused-type-patterns -Wunused-packages -Wmissing-deriving-strategies -Wredundant-constraints -Widentities -Wmissing-export-lists -Wno-name-shadowing -O2 -flate-specialise -fspecialise-aggressively -fplugin=Polysemy.Plugin -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
-    , containers
+      HUnit
+    , QuickCheck
+    , base >=4.7 && <5
     , crisp
-    , generic-random
     , hspec
-    , mtl
+    , hspec-discover
+    , hspec-megaparsec
+    , lens-properties
+    , megaparsec
+    , quickcheck-instances
+    , text
   default-language: GHC2021

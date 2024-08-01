@@ -7,10 +7,11 @@
     };
     hix = {
       url = "https://flakehub.com/f/tek/hix/~0.7.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = inputs: inputs.hix ({ config, ... }: let
+  outputs = inputs: inputs.hix ({ config, lib, ... }: let
     pkgs = inputs.nixpkgs.legacyPackages.${config.system};
   in {
     envs.dev = {
@@ -19,7 +20,12 @@
       buildInputs = with pkgs; [
         nixVersions.latest
         mktemp
+        haskellPackages.hoogle
       ];
+    };
+
+    overrides = { hackage, unbreak, ... }: {
+      # "comonad-extras" = unbreak;
     };
 
     cabal = {
@@ -27,19 +33,54 @@
       license-file = "LICENSE";
       author = "reo101";
       component.language = "GHC2021";
+
       default-extensions = [
-        "DerivingStrategies"
-        "DeriveAnyClass"
-        "DataKinds"
+        "AllowAmbiguousTypes"
         "BlockArguments"
-        "LambdaCase"
+        "DataKinds"
+        "DeriveAnyClass"
+        "DeriveGeneric"
+        "DerivingStrategies"
+        "DuplicateRecordFields"
+        "ExplicitForAll"
         "ExplicitNamespaces"
-        "RecordWildCards"
+        "FlexibleContexts"
+        "GADTSyntax"
+        "GADTs"
+        "LambdaCase"
+        "MultiWayIf"
+        "NoFieldSelectors"
+        "NoMonomorphismRestriction"
+        "OverloadedLabels"
         "OverloadedRecordDot"
         "OverloadedStrings"
-        "UndecidableInstances"
+        "PolyKinds"
+        "RankNTypes"
+        "RecordWildCards"
+        "ScopedTypeVariables"
+        "TemplateHaskell"
+        "TypeApplications"
         "TypeFamilies"
+        "TypeOperators"
+        "UndecidableInstances"
+        "UnicodeSyntax"
+        "ViewPatterns"
       ];
+
+      # prelude = {
+      #   enable = true;
+      #   package = "base";
+      #   # module = "CustomPrelude";
+      #   # "base hiding (Prelude)"
+      #   # "crisp (CustomPrelude as Prelude)"
+      # };
+      # baseHide = {
+      #   mixin = [
+      #     "hiding (Prelude)"
+      #     "(Prelude as BasePrelude)"
+      #   ];
+      # };
+
       ghc-options = [
         "-Wall"
         "-Wunused-type-patterns"
@@ -49,20 +90,52 @@
         "-Widentities"
         "-Wmissing-export-lists"
         "-Wno-name-shadowing"
+        "-O2"
+        "-flate-specialise"
+        "-fspecialise-aggressively"
+        "-fplugin=Polysemy.Plugin"
       ];
     };
 
     packages.crisp = {
-      src = ./.;
+      src = lib.fileset.toSource rec {
+        root = ./.;
+        fileset = lib.fileset.fileFilter (file:
+          !(lib.any lib.id [
+            (lib.hasSuffix ".nix" file.name)
+            (file.name == ".jj" && file.type == "directory")
+            (file.name == "flake.lock")
+            (file.name == "dist-newstyle" && file.type == "directory")
+            (file.name == "notes" && file.type == "directory")
+          ])
+        ) root;
+      };
       cabal.meta.synopsis = "Crisp, A Curried Lisp";
       override = { nodoc, ... }: nodoc;
 
       library = {
         enable = true;
         dependencies = [
-          "containers"
+          "bifunctors"
+          "comonad"
+          # NOTE: broken in `nixpkgs`
+          # "data-aviary"
+          "composition"
+          "deriving-compat"
+          "extra"
+          "free"
+          "generic-lens"
           "haskeline"
-          "mtl"
+          "lens"
+          "megaparsec"
+          "polysemy"
+          "polysemy-plugin"
+          "pretty-simple"
+          "some"
+          "text"
+          # NOTE: for `Polysemy.Megaparsec`
+          # "transformers"
+          "utility-ht"
         ];
       };
 
@@ -77,11 +150,23 @@
         enable = true;
         main = "Spec.hs";
         dependencies = [
+          # Base
           "base >=4.7 && <5"
-          "containers"
-          "generic-random"
+
+          # QuickCheck
+          "QuickCheck"
+          "quickcheck-instances"
+
+          # HUnit && hspec
+          "HUnit"
           "hspec"
-          "mtl"
+          "hspec-discover"
+
+          # Other
+          "megaparsec"
+          "hspec-megaparsec"
+          "lens-properties"
+          "text"
         ];
       };
     };
