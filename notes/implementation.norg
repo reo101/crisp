@@ -1,0 +1,16 @@
+@document.meta
+title: implementation
+description: 
+authors: pavelatanasov
+categories: 
+created: 2024-07-30T23:16:05+0200
+updated: 2024-08-01T18:08:29+0200
+version: 1.1.1
+@end
+
+* Parsing
+
+  [Megaparsec tutorial]{https://markkarpov.com/tutorial/megaparsec}
+
+  - {https://brianmckenna.org/blog/type_annotation_cofree}
+  - {https://www.researchgate.net/publication/2528716_Generalizing_Hindley-Milner_Type_Inference_Algorithms}

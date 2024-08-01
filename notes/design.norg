@@ -1,0 +1,74 @@
+@document.meta
+title: design
+description: 
+authors: pavelatanasov
+categories: 
+created: 2024-07-30T20:58:14+0200
+updated: 2024-07-31T01:06:03+0200
+version: 1.1.1
+@end
+
+* Language features
+
+** Type System
+
+   - ( ) `Π` Dependent Types
+   -- ( ) [Wikipedia - Lambda cube]{https://en.wikipedia.org/wiki/Lambda_cube}
+      .image https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Lambda_Cube_img.svg/2560px-Lambda_Cube_img.svg.png
+   - ( ) `⊸` Linearity
+   -- ( ) Linear Types
+   -- ( ) Unqueness Types
+
+   [nLab - Dependent linear type theory]{https://ncatlab.org/nlab/show/dependent+linear+type+theory}
+   [Integrating Dependent and Linear Types]{https://www.cl.cam.ac.uk/~nk480/dlnl-paper.pdf}
+
+   Granule (/graded modal types/)
+   - [Homepage]{https://granule-project.github.io/granule.html}
+   - [GitHub]{https://github.com/granule-project/granule}
+   - [Talk]{https://www.youtube.com/watch?v=QtlkqJGdnuM
+
+   - ( ) Traits / Typeclasses
+   -- [Rust - Trait Resultion (old)]{https://rustc-dev-guide.rust-lang.org/traits/resolution.html}
+   -- [Rust - Trait Resultion (new)]{https://rustc-dev-guide.rust-lang.org/traits/chalk.html}
+   -- [Haskell - Instance declarations and resolution]{https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/instances.html}
+
+   - ( ) Algebraic Effects
+   -- [Wikipedia - Effect system]{https://en.wikipedia.org/wiki/Effect_system}
+
+** Syntax
+
+   - ( ) LISP
+   -- Types of LISP languages (from [here]{https://github.com/dundalek/awesome-lisp-languages})
+   --- Type-A: Simple syntax mapping
+       These languages usually just provide s-expressions (parentheses) syntax and are translated to the target language without extra features/semantics. Also sometimes being called transpilers.
+
+   --- Type-B: Syntax and additional semantics
+       In addition to translating the syntax some additional features/semantics that are not present in the target language are added. Usually if a language does not fit in other category, it can be considered being a Type-B.
+
+   --- Type-C: Clojure-like
+       Distintive syntax that besides parentheses also uses brackets and curly braces. Distinctive features are persistent data structures, namespaces and vars, protocols.
+
+   --- Type-L: Common Lisp
+       Implementing ANSI Common Lisp standard or being inspired by it.
+
+   --- Type-S: Scheme
+       Implementing some of RxRS standards or being inspired by Scheme.
+
+   -- [Lean Macro System]{https://lean-lang.org/lean4/doc/macro_overview.html}
+   -- [Teach Yourself Scheme in Fixnum Days - 8. Macros]{https://ds26gte.github.io/tyscheme/index-Z-H-10.html}
+
+   - ( ) C-like frontend that just translated to the LISP-y real syntax
+
+   Treesitter or hand-rolled parsing?
+
+   @code crisp
+   ;; External type declarations
+   (: f (-> Int Int))
+   (fn f [x]
+     (+ x 1))
+
+   ;; Internal type declarations
+   (fn f [x ^Int] ^Int
+     (+ x 1))
+   @end
+

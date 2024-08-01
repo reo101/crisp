@@ -1,0 +1,13 @@
+@document.meta
+title: main
+description: 
+authors: pavelatanasov
+categories: 
+created: 2024-07-30T23:17:09+0200
+updated: 2024-07-30T23:53:50+0200
+version: 1.1.1
+@end
+
+* [Design]{:./design.norg:}
+
+* [Implementation]{:./implementation.norg:}
