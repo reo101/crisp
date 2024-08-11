@@ -37,6 +37,7 @@
       default-extensions = [
         "AllowAmbiguousTypes"
         "BlockArguments"
+        "ConstraintKinds"
         "DataKinds"
         "DeriveAnyClass"
         "DeriveGeneric"
@@ -60,6 +61,8 @@
         "ScopedTypeVariables"
         "TemplateHaskell"
         "TypeApplications"
+        # NOTE: from >=`9.6.1`, better than `DataKinds`
+        # "TypeData"
         "TypeFamilies"
         "TypeOperators"
         "UndecidableInstances"
@@ -105,7 +108,7 @@
             (lib.hasSuffix ".nix" file.name)
             (file.name == ".jj" && file.type == "directory")
             (file.name == "flake.lock")
-            (file.name == "dist-newstyle" && file.type == "directory")
+            # (file.name == "dist-newstyle" && file.type == "directory")
             (file.name == "notes" && file.type == "directory")
           ])
         ) root;
@@ -121,6 +124,7 @@
           # NOTE: broken in `nixpkgs`
           # "data-aviary"
           "composition"
+          "containers"
           "deriving-compat"
           "extra"
           "free"
