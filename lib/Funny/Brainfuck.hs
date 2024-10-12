@@ -7,7 +7,7 @@
 
 module Funny.Brainfuck where
 
-import Control.Lens (Field1 (_1), (%~), (&), (+~), (-~), (.~), (^.))
+import Control.Lens (Field1 (_1), (%~), (&), (+~), (-~), (.~), (<&>), (^.))
 import Control.Monad (join, void, when)
 import Crisp.Utils (parse, throwErrorToIOFinal)
 import Data.Char (chr, ord)
@@ -19,13 +19,13 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Void (Void)
 import GHC.Generics (Generic)
-import Polysemy (Member, Members, Sem, embed, embedToFinal, interpret, makeSem, runFinal, runM)
-import Polysemy.Error (Error, errorToIOFinal, throw)
-import Polysemy.Input (Input, input, runInputList, runInputSem)
+import Polysemy (Member, Members, Sem, embed, embedToFinal, interpret, makeSem, reinterpret, runFinal)
+import Polysemy.Error (Error, throw)
+import Polysemy.Input (Input (Input), input, runInputList, runInputSem)
 import Polysemy.Output (Output, output, runOutputMonoid, runOutputSem)
 import Polysemy.State (State, evalState, gets, modify)
 import Polysemy.Trace (Trace (Trace), trace, traceToStdout)
-import Text.Megaparsec (ParseErrorBundle, Parsec, between, choice, many, runParser, satisfy, sepBy)
+import Text.Megaparsec (Parsec, between, choice, many, satisfy, sepBy)
 import Text.Megaparsec.Char (char)
 
 -- AST definition
@@ -115,15 +115,14 @@ data BrainfuckEffect m a where
   OutputChar :: BrainfuckEffect m ()
   InputChar :: BrainfuckEffect m ()
   GetCurrentValue :: BrainfuckEffect m Int
-  EndOfInput :: BrainfuckEffect m ()
 
 makeSem ''BrainfuckEffect
 
 -- Interpreter for AST
-interpretBF
-  :: (Members '[BrainfuckEffect, Trace] r)
-  => [BFCommand]
-  -> Sem r ()
+interpretBF ::
+  (Members '[BrainfuckEffect, Trace] r) =>
+  [BFCommand] ->
+  Sem r ()
 interpretBF = traverse_ interpret
   where
     interpret cmd = do
@@ -141,11 +140,23 @@ interpretBF = traverse_ interpret
             interpretBF body
             interpret (BFCLoop body)
 
+allowFiniteInput ::
+  forall i r a.
+  (Member (Error String) r) =>
+  Sem (Input i ': r) a ->
+  Sem (Input (Maybe i) ': r) a
+allowFiniteInput = reinterpret \case
+  Input -> do
+    mi <- input @(Maybe i)
+    case mi of
+      Nothing -> throw "End of input"
+      Just i -> pure i
+
 -- Main BrainfuckEffect handler
-runBrainfuckEffect
-  :: (Members '[State Tape, Input (Maybe Char), Output Char, Error String, Trace] r)
-  => Sem (BrainfuckEffect ': r) a
-  -> Sem r a
+runBrainfuckEffect ::
+  (Members '[State Tape, Input Char, Output Char, Trace] r) =>
+  Sem (BrainfuckEffect ': r) a ->
+  Sem r a
 runBrainfuckEffect = interpret $ \case
   MoveLeft -> do
     modify $ \tape ->
@@ -174,62 +185,56 @@ runBrainfuckEffect = interpret $ \case
     output (chr val)
     trace $ "Output char: " ++ [chr val]
   InputChar -> do
-    mc <- input
-    case mc of
-      Just c -> do
-        modify $ #current .~ ord c
-        trace $ "Input char: " ++ show c
-      Nothing -> do
-        error "End of input"
+    c <- input
+    modify $ #current .~ ord c
+    trace $ "Input char: " ++ show c
   GetCurrentValue ->
     gets (^. #current)
-  EndOfInput ->
-    pure ()
 
 -- Ignore traces
-traceToNowhere
-  :: Sem (Trace ': r) a
-  -> Sem r a
+traceToNowhere ::
+  Sem (Trace ': r) a ->
+  Sem r a
 traceToNowhere = interpret \case
   Trace _msg -> return ()
 
 runBrainfuckProgram :: String -> IO ()
 runBrainfuckProgram program = do
   ast <-
-    runFinal
-      . throwErrorToIOFinal
-      . parseBrainfuck
-      $ program
-  runFinal
-    . embedToFinal
-    . throwErrorToIOFinal
-    . (if False then traceToStdout else traceToNowhere)
-    . runInputSem (pure <$> embed getChar)
-    . runOutputSem (embed . putChar)
-    . evalState initialTape
-    . runBrainfuckEffect
-    . interpretBF
-    $ ast
+    program
+      & parseBrainfuck
+      & throwErrorToIOFinal
+      & runFinal
+  ast
+    & interpretBF
+    & runBrainfuckEffect
+    & evalState initialTape
+    & runOutputSem (embed . putChar)
+    & runInputSem (embed getChar)
+    & (if False then traceToStdout else traceToNowhere)
+    & embedToFinal
+    & runFinal
 
 runBrainfuckProgramWithInput :: String -> String -> IO String
 runBrainfuckProgramWithInput program input = do
   ast <-
-    runFinal
-      . throwErrorToIOFinal
-      . parseBrainfuck
-      $ program
-  res <-
-    runFinal
-      . embedToFinal
-      . throwErrorToIOFinal
-      . (if False then traceToStdout else traceToNowhere)
-      . runInputList input
-      . runOutputMonoid (pure @[])
-      . evalState initialTape
-      . runBrainfuckEffect
-      . interpretBF
-      $ ast
-  pure $ res ^. _1
+    program
+      & parseBrainfuck
+      & throwErrorToIOFinal
+      & runFinal
+  ast
+    & interpretBF
+    & runBrainfuckEffect
+    & evalState initialTape
+    & runOutputMonoid (pure @[])
+    -- NOTE: puts `Input (Maybe i)` on top
+    & allowFiniteInput @Char
+    & runInputList input
+    & throwErrorToIOFinal
+    & (if False then traceToStdout else traceToNowhere)
+    & embedToFinal
+    & runFinal
+    <&> (^. _1)
 
 helloWorld :: String
 helloWorld = "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>."
