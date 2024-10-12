@@ -19,7 +19,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Void (Void)
 import GHC.Generics (Generic)
-import Polysemy (Member, Members, Sem, embed, embedToFinal, interpret, makeSem, reinterpret, runFinal, runM, run)
+import Polysemy (Member, Members, Sem, embed, embedToFinal, interpret, makeSem, reinterpret, runFinal, run)
 import Polysemy.Error (Error, throw, runError)
 import Polysemy.Input (Input (Input), input, runInputList, runInputSem)
 import Polysemy.Output (Output, output, runOutputMonoid, runOutputSem)
@@ -62,12 +62,12 @@ data BFCommand
 type Parser = Parsec Void Text
 
 -- Parser for Brainfuck commands
-commandParser :: Parser [BFCommand]
-commandParser = parseCommand `sepBy` ignoreComment
+parser :: Parser [BFCommand]
+parser = ignoreComment *> (commandParser `sepBy` ignoreComment) <* ignoreComment
 
 -- Parses individual Brainfuck commands, ignoring comments
-parseCommand :: Parser BFCommand
-parseCommand =
+commandParser :: Parser BFCommand
+commandParser =
   choice
     [ BFCMoveRight <$ char '>'
     , BFCMoveLeft <$ char '<'
@@ -75,7 +75,7 @@ parseCommand =
     , BFCDecrement <$ char '-'
     , BFCOutput <$ char '.'
     , BFCInput <$ char ','
-    , BFCLoop <$> between (char '[') (char ']') (commandParser)
+    , BFCLoop <$> between (char '[') (char ']') (parser)
     ]
 
 -- Ignore any character that is not a valid Brainfuck command
@@ -87,7 +87,13 @@ ignoreComment = void $ many (satisfy isCommentChar)
 
 -- Function to parse a Brainfuck program from a string
 parseBrainfuck :: (Member (Error String) r) => String -> Sem r [BFCommand]
-parseBrainfuck input = parse commandParser "kek" $ T.pack input
+parseBrainfuck input = parse parser "kek" $ T.pack input
+
+parseBrainfuck' :: String -> Either String [BFCommand]
+parseBrainfuck' input =
+  parseBrainfuck input
+    & runError
+    & run
 
 -- State
 data Stream a = Cons a (Stream a)
@@ -217,7 +223,7 @@ runBrainfuckProgram program = do
     & embedToFinal
     & runFinal
 
-runBrainfuckProgramWithInput :: String -> String -> IO String
+runBrainfuckProgramWithInput :: String -> String -> IO Text
 runBrainfuckProgramWithInput program input = do
   ast <-
     program
@@ -229,7 +235,7 @@ runBrainfuckProgramWithInput program input = do
     & runBrainfuckEffect
     & (if False then traceToStdout else traceToNowhere)
     & evalState initialTape
-    & runOutputMonoid (pure @[]) <&> (^. _1)
+    & runOutputMonoid T.singleton <&> (^. _1)
     -- NOTE: puts `Input (Maybe i)` on top
     & allowFiniteInput @Char
     & runInputList input
@@ -237,7 +243,7 @@ runBrainfuckProgramWithInput program input = do
     & embedToFinal
     & runFinal
 
-runBrainfuckProgramWithInputPure :: String -> String -> Either String String
+runBrainfuckProgramWithInputPure :: String -> String -> Either String Text
 runBrainfuckProgramWithInputPure program input = do
   ast <-
     program
@@ -249,7 +255,7 @@ runBrainfuckProgramWithInputPure program input = do
     & runBrainfuckEffect
     & traceToNowhere
     & evalState initialTape
-    & runOutputMonoid (pure @[]) <&> (^. _1)
+    & runOutputMonoid T.singleton <&> (^. _1)
     & allowFiniteInput @Char
     & runInputList input
     & runError
@@ -272,3 +278,56 @@ alphabet = ",>++++++++++[<.+>-]"
 -- >>> runBrainfuckProgramWithInputPure alphabet ""
 -- Left "End of input"
 
+-- NOTE: source <http://www.linusakesson.net/programming/brainfuck>
+-- FIXME: doesn't parse
+life :: String
+life = " \
+\                             Linus Akesson presents:                               \n\
+\                    The Game Of Life implemented in Brainfuck                      \n\
+\                                                                                   \n\
+\        +>>++++[<++++>-]<[<++++++>-]+[<[>>>>+<<<<-]>>>>[<<<<+>>>>>>+<<-]<+         \n\
+\    +++[>++++++++<-]>.[-]<+++[>+++<-]>+[>>.+<<-]>>[-]<<<++[<+++++>-]<.<<[>>>>+     \n\
+\  <<<<-]>>>>[<<<<+>>>>>>+<<-]<<[>>>>.+<<<++++++++++[<[>>+<<-]>>[<<+>>>>>++++++++   \n\
+\  +++<<<-]<[>+<-]>[<+>>>>+<<<-]>>>[>>>>>>>>>>>>+>+<<     <<<<<<<<<<<-]>>>>>>>>>>   \n\
+\ >>[-[>>>>+<<<<-]>[>>>>+<<<<-]>>>]>      >>[<<<+>>  >-    ]<<<[>>+>+<<<-]>[->[<<<  \n\
+\ <+>>>>-]<[<<<  <+>      >>>-]<<<< ]<     ++++++  ++       +[>+++++<-]>>[<<+>>-]<  \n\
+\ <[>---<-]>.[- ]         <<<<<<<<< <      <<<<<< <         -]++++++++++.[-]<-]>>>  \n\
+\ >[-]<[-]+++++           +++[>++++        ++++<     -     ]>--.[-]<,----------[<+  \n\
+\ >-]>>>>>>+<<<<< <     <[>+>>>>>+>[      -]<<<      <<   <<-]>++++++++++>>>>>[[-]  \n\
+\ <<,<<<<<<<->>>> >    >>[<<<<+>>>>-]<<<<[>>>>+      >+<<<<<-]>>>>>----------[<<<<  \n\
+\ <<<<+<[>>>>+<<<      <-]>>>>[<<<<+>>>>>>+<<-      ]>[>-<-]>++++++++++[>+++++++++  \n\
+\ ++<-]<<<<<<[>>>      >+<<<<-]>>>>[<<<<+>>>>>      >+<<-]>>>>[<<->>-]<<++++++++++  \n\
+\ [>+<-]>[>>>>>>>      >>>>>+>+<<<<      <<<<<      <<<<-]>>> >>     >>>>>>>[-[>>>  \n\
+\ >+<<<<-]>[>>>>       +<<<<-]>> >       ]>> >           [<< <        +>>>-]+<<<[>  \n\
+\ >>-<<<-]>[->[<      <<<+>>>>-]         <[ <            < <           <+>>>>-]<<<  \n\
+\ <]<<<<<<<<<<<, [    -]]>]>[-+++        ++               +    +++     ++[>+++++++  \n\
+\ ++++>+++++++++ +    +<<-]>[-[>>>      +<<<-      ]>>>[ <    <<+      >>>>>>>+>+<  \n\
+\ <<<<-]>>>>[-[> >    >>+<<<<-]>[>      >>>+< <    <<-]> >    >]>      >>[<<<+>>>-  \n\
+\ ]<<<[>>+>+<<< -     ]>[->[<<<<+>      >>>-] <    [<<< <    +>>       >>-]<<<<]<<  \n\
+\ <<<<<<[>>>+<< <     -]>>>[<<<+>>      >>>>> +    >+<< <             <<-]<<[>>+<<  \n\
+\ -]>>[<<+>>>>>      >+>+<<<<<-]>>      >>[-[ >    >>>+ <            <<<-]>[>>>>+<  \n\
+\ <<<-]>[>>>>+<      <<<-]>>]>>>[ -    ]<[>+< -    ]<[ -           [<<<<+>>>>-]<<<  \n\
+\ <]<<<<<<<<]<<      <<<<<<<<++++ +    +++++  [   >+++ +    ++++++[<[>>+<<-]>>[<<+  \n\
+\ >>>>>++++++++ +    ++<<<     -] <    [>+<- ]    >[<+ >    >>>+<<<-]>>>[<<<+>>>-]  \n\
+\ <<<[>>>+>>>>  >    +<<<<     <<      <<-]> >    >>>>       >>>[>>+<<-]>>[<<+<+>>  \n\
+\ >-]<<<------ -    -----[     >>      >+<<< -    ]>>>       [<<<+> > >>>>>+>+<<<<  \n\
+\ <-]>>>>[-[>> >    >+<<<<    -] >     [>>>> +    <<<<-       ]>>> ]  >>>[<<<+>>>-  \n\
+\ ]<<<[>>+>+<< <    -]>>>     >>           > >    [<<<+               >>>-]<<<[>>>  \n\
+\ +<<<<<+>>-                  ]>           >     >>>>>[<             <<+>>>-]<<<[>  \n\
+\ >>+<<<<<<<                  <<+         >      >>>>>-]<          <<<<<<[->[<<<<+  \n\
+\ >>>>-]<[<<<<+>>>>-]<<<<]>[<<<<<<    <+>>>      >>>>-]<<<<     <<<<<+++++++++++[>  \n\
+\ >>+<<<-]>>>[<<<+>>>>>>>+>+<<<<<-]>>>>[-[>     >>>+<<<<-]>[>>>>+<<<<-]>>>]>>>[<<<  \n\
+\ +>>>-]<<<[>>+>+<<<-]>>>>>>>[<<<+>>>-]<<<[     >>>+<<<<<+>>-]>>>>>>>[<<<+>>>-]<<<  \n\
+\ [>>>+<<<<<<<<<+>>>>>>-]<<<<<<<[->[< <  <     <+>>>>-]<[<<<<+>>>>-]<<<<]>[<<<<<<<  \n\
+\ +>>>>>>>-]<<<<<<<<<+++++++++++[>>> >        >>>+>+<<<<<<<<-]>>>>>>>[-[>>>>+<<<<-  \n\
+\ ]>[>>>>+<<<<-]>>>]>>>[<<<+>>>-]<<< [       >>+>+<<<-]>>>>>>>[<<<+>>>-]<<<[>>>+<<  \n\
+\ <<<+>>-]>>>>>>>[<<<+>>>-]<<<[>>>+<        <<<<<<<<+>>>>>>-]<<<<<<<[->[<<<<+>>>>-  \n\
+\  ]<[<<<<+>>>>-]<<<<]>[<<<<<<<+>>>>>      >>-]<<<<<<<----[>>>>>>>+<<<<<<<+[>>>>>   \n\
+\  >>-<<<<<<<[-]]<<<<<<<[>>>>>>>>>>>>+>+<<<<<<<<<<<<<-][   lft@df.lth.se   ]>>>>>   \n\
+\    >>>>>>>[-[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>>]>>>[-]<[>+<-]<[-[<<<<+>>     \n\
+\        >>-]<<<<]<<<<<<[-]]<<<<<<<[-]<<<<-]<-]>>>>>>>>>>>[-]<<]<<<<<<<<<<]         \n\
+\                                                                                   \n\
+\         Type for instance 'fg' to toggle the cell at row f and column g           \n\
+\                    Hit enter to calculate the next generation                     \n\
+\                                  Type q to quit                                   \n\
+\ "
