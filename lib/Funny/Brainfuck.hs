@@ -19,8 +19,8 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Void (Void)
 import GHC.Generics (Generic)
-import Polysemy (Member, Members, Sem, embed, embedToFinal, interpret, makeSem, reinterpret, runFinal)
-import Polysemy.Error (Error, throw)
+import Polysemy (Member, Members, Sem, embed, embedToFinal, interpret, makeSem, reinterpret, runFinal, runM, run)
+import Polysemy.Error (Error, throw, runError)
 import Polysemy.Input (Input (Input), input, runInputList, runInputSem)
 import Polysemy.Output (Output, output, runOutputMonoid, runOutputSem)
 import Polysemy.State (State, evalState, gets, modify)
@@ -183,13 +183,15 @@ runBrainfuckEffect = interpret $ \case
   OutputChar -> do
     val <- gets (^. #current)
     output (chr val)
-    trace $ "Output char: " ++ [chr val]
+    trace $ "Output char: " ++ show (chr val)
   InputChar -> do
     c <- input
     modify $ #current .~ ord c
     trace $ "Input char: " ++ show c
-  GetCurrentValue ->
-    gets (^. #current)
+  GetCurrentValue -> do
+    v <- gets (^. #current)
+    trace $ "Got current value: " ++ show v
+    pure v
 
 -- Ignore traces
 traceToNowhere ::
@@ -208,10 +210,10 @@ runBrainfuckProgram program = do
   ast
     & interpretBF
     & runBrainfuckEffect
+    & (if False then traceToStdout else traceToNowhere)
     & evalState initialTape
     & runOutputSem (embed . putChar)
     & runInputSem (embed getChar)
-    & (if False then traceToStdout else traceToNowhere)
     & embedToFinal
     & runFinal
 
@@ -225,19 +227,48 @@ runBrainfuckProgramWithInput program input = do
   ast
     & interpretBF
     & runBrainfuckEffect
+    & (if False then traceToStdout else traceToNowhere)
     & evalState initialTape
-    & runOutputMonoid (pure @[])
+    & runOutputMonoid (pure @[]) <&> (^. _1)
     -- NOTE: puts `Input (Maybe i)` on top
     & allowFiniteInput @Char
     & runInputList input
     & throwErrorToIOFinal
-    & (if False then traceToStdout else traceToNowhere)
     & embedToFinal
     & runFinal
-    <&> (^. _1)
+
+runBrainfuckProgramWithInputPure :: String -> String -> Either String String
+runBrainfuckProgramWithInputPure program input = do
+  ast <-
+    program
+      & parseBrainfuck
+      & runError
+      & run
+  ast
+    & interpretBF
+    & runBrainfuckEffect
+    & traceToNowhere
+    & evalState initialTape
+    & runOutputMonoid (pure @[]) <&> (^. _1)
+    & allowFiniteInput @Char
+    & runInputList input
+    & runError
+    & run
+
+-- Examples
 
 helloWorld :: String
 helloWorld = "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>."
 
--- >>> runBrainfuckProgramWithInput helloWorld ""
--- "Hello World!\n"
+-- >>> runBrainfuckProgramWithInputPure helloWorld ""
+-- Right "Hello World!\n"
+
+alphabet :: String
+alphabet = ",>++++++++++[<.+>-]"
+
+-- >>> runBrainfuckProgramWithInputPure alphabet "a"
+-- Right "abcdefghij"
+
+-- >>> runBrainfuckProgramWithInputPure alphabet ""
+-- Left "End of input"
+
