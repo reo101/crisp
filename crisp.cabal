@@ -20,6 +20,7 @@ library
       Crisp.Lexer
       Crisp.Parser
       Crisp.Utils
+      Funny.Brainfuck
   other-modules:
       Paths_crisp
   hs-source-dirs:
@@ -73,6 +74,7 @@ library
     , polysemy
     , polysemy-plugin
     , pretty-simple
+    , recursion-schemes
     , some
     , text
     , utility-ht

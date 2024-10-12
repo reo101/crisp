@@ -135,6 +135,7 @@
           "polysemy"
           "polysemy-plugin"
           "pretty-simple"
+          "recursion-schemes"
           "some"
           "text"
           # NOTE: for `Polysemy.Megaparsec`
